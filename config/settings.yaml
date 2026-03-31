@@ -1,0 +1,43 @@
+# QBase_v2 Global Settings
+
+# AlphaForge paths
+alphaforge_path: "/Users/simon/Desktop/alphaforge"
+data_dir: "/Users/simon/Desktop/alphaforge/data"
+
+# Capital & risk
+initial_capital: 10_000_000
+risk_per_trade: 0.02            # 2% single trade risk
+max_margin_single: 0.30         # 30% max margin per strategy
+max_margin_total: 0.80          # 80% total margin limit
+
+# Vol targeting
+target_vol: 0.10                # 10% annualized target volatility
+vol_halflife: 60                # EW halflife in days for realized vol
+
+# Portfolio stops
+stop_warning: -0.10             # -10% drawdown warning
+stop_reduce: -0.15              # -15% half all positions
+stop_circuit: -0.20             # -20% full liquidation
+stop_daily: -0.05               # -5% daily loss circuit breaker
+
+# Backtest
+trading_days_per_year: 252
+risk_free_rate: 0.03
+
+# Instruments (black series)
+instruments:
+  - RB    # 螺纹钢
+  - HC    # 热卷
+  - I     # 铁矿石
+  - J     # 焦炭
+  - JM    # 焦煤
+
+# Frequencies (all developed simultaneously)
+frequencies:
+  - "1h"
+  - "2h"
+  - "4h"
+  - "daily"
+
+# Regime switching
+regime_switch_frequency: "monthly"   # weekly or monthly

@@ -1,0 +1,24 @@
+# Fundamental Directional Views
+# Updated by fundamental team (weekly/monthly)
+# direction: long / short / neutral
+# regime: strong_trend / mild_trend / mean_reversion / crisis
+
+views:
+  RB:
+    direction: neutral
+    regime: null
+  HC:
+    direction: neutral
+    regime: null
+  I:
+    direction: neutral
+    regime: null
+  J:
+    direction: neutral
+    regime: null
+  JM:
+    direction: neutral
+    regime: null
+
+updated_at: "2026-04-01"
+updated_by: "template - not yet configured"

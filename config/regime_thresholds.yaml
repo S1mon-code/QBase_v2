@@ -1,0 +1,17 @@
+# Regime Labeling Thresholds
+# Used by regime/labeler.py for Bry-Boschan auto-labeling
+
+default:
+  strong_trend_pct: 0.20        # |price change| > 20% in 1-3 months
+  mild_trend_pct: 0.05          # |price change| 5-20%
+  crisis_atr_sigma: 3.0         # ATR > 3 sigma from mean
+  min_duration_months: 1        # minimum regime duration
+  buffer_months: 2              # buffer before/after each regime period
+  peak_trough_window: 3         # months to look for local extrema
+
+# Per-instrument overrides (optional)
+overrides:
+  I:
+    strong_trend_pct: 0.25      # iron ore is more volatile
+  JM:
+    strong_trend_pct: 0.15      # coking coal less volatile
