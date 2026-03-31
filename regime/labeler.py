@@ -231,7 +231,7 @@ def auto_label(
         if isinstance(d, date):
             parsed_dates.append(d)
         elif isinstance(d, np.datetime64):
-            ts = (d - np.datetime64("1970-01-01", "D")).astype(int)
+            ts = (d.astype("datetime64[D]") - np.datetime64("1970-01-01", "D")).astype(int)
             parsed_dates.append(date(1970, 1, 1) + timedelta(days=int(ts)))
         else:
             parsed_dates.append(date.fromisoformat(str(d)))

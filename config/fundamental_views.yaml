@@ -11,8 +11,8 @@ views:
     direction: neutral
     regime: null
   I:
-    direction: neutral
-    regime: null
+    direction: long
+    regime: strong_trend
   J:
     direction: neutral
     regime: null
@@ -21,4 +21,4 @@ views:
     regime: null
 
 updated_at: "2026-04-01"
-updated_by: "template - not yet configured"
+updated_by: "simon - I iron ore bullish research"

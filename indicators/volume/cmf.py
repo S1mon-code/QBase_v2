@@ -29,7 +29,8 @@ def cmf(
     volumes = volumes.astype(np.float64)
 
     hl_range = highs - lows
-    clv = np.where(hl_range != 0.0, ((closes - lows) - (highs - closes)) / hl_range, 0.0)
+    hl_safe = np.where(hl_range != 0.0, hl_range, 1.0)
+    clv = np.where(hl_range != 0.0, ((closes - lows) - (highs - closes)) / hl_safe, 0.0)
     mf_volume = clv * volumes
 
     result = np.full(n, np.nan, dtype=np.float64)
