@@ -12,18 +12,26 @@
 - **4 维信号体系：** Momentum / Carry / Volume-OI / Technical
 - **多周期同步：** 1h / 2h / 4h / daily 同步开发和验证
 - **基本面方向约束：** 看多→只做多，看空→只做空
-- **Signal Blending：** 多策略信号混合后输出单一净头寸
+- **Signal Blending：** 多策略信号混合后输出单一净头寸（Carver 标准）
 - **5 维优化函数：** Performance + Significance + Consistency + Risk + Alpha
 - **6 层验证：** Regime CV → OOS → Walk-Forward → Deflated Sharpe → Monte Carlo → Industrial
 - **5 层归因：** Signal → Horizon → Regime → Baseline Decomposition → Operational
+- **自动报告命名：** Research 文件夹以 OOS 总收益自动命名（如 `v10_+97.98%`）
 
 ## 品种
 
-黑色系：RB（螺纹钢）、HC（热卷）、I（铁矿石）、J（焦炭）、JM（焦煤）
+| 品种 | 代码 | 乘数 | 状态 |
+|------|------|------|------|
+| 铁矿石 | I | 100 | 已开发（270 策略）|
+| 白银 | AG | — | 已开发（80 策略）|
+| 螺纹钢 | RB | 10 | 待开发 |
+| 热卷 | HC | 10 | 待开发 |
+| 焦炭 | J | 100 | 待开发 |
+| 焦煤 | JM | 60 | 待开发 |
 
 ## 依赖
 
-- **AlphaForge V6.0** — 回测引擎（95 品种，1min-daily，1505 tests）
+- **AlphaForge V7.1** — 回测引擎（95 品种，1min-daily，Industrial 模式）
 - **Python 3.10+**
 - numpy, numba, optuna, scikit-learn, plotly
 
@@ -32,34 +40,29 @@
 | Phase | 状态 | 完成度 |
 |-------|------|--------|
 | 1 — 项目骨架 | 完成 | 100% |
-| 2 — Regime 标注系统 | 完成 | 90%（缺 visualizer + 真实数据标注）|
+| 2 — Regime 标注系统 | 完成 | 100%（I + AG long/short）|
 | 3 — 风控模块 | 完成 | 100% |
-| 4 — 策略开发 | 完成 | 100%（11 strategies）|
+| 4 — 策略开发 | 完成 | 270 策略（I + AG，4 timeframe）|
 | 5 — 优化器 | 完成 | 100% |
 | 6 — 验证体系 | 完成 | 100% |
 | 7 — 归因分析 | 完成 | 100% |
 | 8 — Portfolio 构建 | 完成 | 100% |
-| 9 — 扩展品种 | 待实盘数据 | 0% |
-| 10 — Pipeline + CLI | 进行中 | 70%（缺 HTML 报告）|
+| 9 — 扩展品种 | I + AG 完成 | 50% |
+| 10 — Pipeline + CLI | 完成 | 95%（batch pipeline + 自动报告命名）|
 | 11 — 监控 + 实盘 | 进行中 | 60%（缺 paper trading）|
 
 **测试覆盖：** 576+ tests, 100% pass rate
 
-## 已实现策略
+## 策略规模
 
-| 策略 | Regime | Horizon | 信号维度 |
-|------|--------|---------|---------|
-| tsmom_fast | trending | fast | momentum |
-| tsmom_medium | trending | medium | momentum |
-| tsmom_slow | trending | slow | momentum |
-| trend_medium_v1 | trending | medium | momentum + volume |
-| trend_medium_v2 | trending | medium | momentum + volume |
-| trend_medium_v3 | trending | medium | momentum + OI |
-| trend_medium_v4 | trending | medium | momentum + volume |
-| trend_medium_v5 | trending | medium | momentum + technical |
-| trend_fast_v1 | trending | fast | momentum + volume |
-| trend_slow_v1 | trending | slow | momentum + technical |
-| mr_v1 | mean_reversion | — | technical + momentum |
+| Group | 策略数 | 通过验证 | Gate Fail |
+|-------|--------|---------|-----------|
+| strong_trend/long/I | 110 | 102 | 8 |
+| strong_trend/long/AG | 40 | 35 | 5 |
+| strong_trend/short/AG | 40 | 27 | 13 |
+| mild_trend/long/I | 40 | 待标注 | — |
+| mild_trend/short/I | 40 | 18 | 22 |
+| **Total** | **270** | **182** | **48** |
 
 ## 系统架构
 
@@ -74,9 +77,6 @@
     └────┬────┘
     ┌────▼────┐
     │ Layer 2 │  Strategy Pool — 按 Regime 激活对应策略集
-    │         │  Trending: TSMOM Baselines + Momentum + Carry + Blended + Technical
-    │         │  Mean Reversion: BB / RSI / Keltner / CCI / Carry MR
-    │         │  Crisis: 减仓 + 收紧止损
     └────┬────┘
     ┌────▼────┐
     │ Layer 3 │  Signal Blender — 多策略信号加权合并 → 单一净信号
@@ -94,7 +94,7 @@
     │ Layer 7 │  Portfolio Stops — 预警-10% / 减仓-15% / 熔断-20% / 单日-5%
     └────┬────┘
     ┌────▼────┐
-    │ Layer 8 │  Execution — AlphaForge V6.0 Industrial 模式
+    │ Layer 8 │  Execution — AlphaForge V7.1 Industrial 模式
     └─────────┘
 ```
 
@@ -104,25 +104,34 @@
 # 运行全量测试
 python -m pytest tests/ -v
 
-# 标注 regime（需要真实数据）
-qbase label RB --visualize
+# 单策略全流程（优化 + 验证 + 归因 + 报告）
+python -c "
+from pipeline.dev_pipeline import run_single_strategy_pipeline
+from strategies.strong_trend.long.AG._1h.v1 import StrongTrendLongAG1hV1
 
-# 运行策略
-qbase run trend_medium_v1.py --symbol RB --freq 1h
+result = run_single_strategy_pipeline(
+    StrongTrendLongAG1hV1, symbol='AG', direction='long',
+    regime='strong_trend', horizon='medium', version='v1', freq='1h',
+)
+# -> research/strong_trend/long/AG/1h/v1_+96.92%/
+"
 
-# 优化
-qbase optimize trend_medium_v1.py --symbol RB --freq 1h --regime strong_trend
+# 批量运行所有策略
+python scripts/batch_optimize_all.py
 
-# 验证（6 层）
-qbase validate trend_medium_v1 --all
-
-# Portfolio 构建
-qbase portfolio build --symbol RB --regime strong_trend
+# CLI
+qbase label AG --visualize
+qbase run v1.py --symbol AG --freq 1h
+qbase optimize v1.py --symbol AG --regime strong_trend
+qbase validate v1 --all
+qbase portfolio build --symbol AG --regime strong_trend
 ```
 
 ## 文档
 
-- [CLAUDE.md](CLAUDE.md) — Agent 开发指南 + Phase 索引
+- [CLAUDE.md](CLAUDE.md) — Agent 开发指南 + AlphaForge API 参考
+- [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) — 单策略开发标准流程 v3.0
+- [docs/STRATEGY_GUIDE.md](docs/STRATEGY_GUIDE.md) — 策略开发指引
+- [docs/PORTFOLIO.md](docs/PORTFOLIO.md) — Portfolio 构建标准
 - [docs/architecture.md](docs/architecture.md) — 系统架构
 - [docs/phases/](docs/phases/) — 各 Phase 详细设计
-- [todo.md](todo.md) — 任务进度追踪

@@ -128,47 +128,49 @@ QBase_v2/
 
 ---
 
-## 当前实现状态 (截至 2026-03-31)
+## 当前实现状态 (截至 2026-04-01)
 
 | Phase | 状态 | 完成度 |
 |-------|------|--------|
 | 1 — 项目骨架 | ✅ 完成 | 100% |
-| 2 — Regime 标注系统 | ✅ 完成 | 90%（缺 visualizer + 真实数据标注）|
+| 2 — Regime 标注系统 | ✅ 完成 | 100%（I + AG long/short 已标注）|
 | 3 — 风控模块 | ✅ 完成 | 100% |
-| 4 — 策略开发 | ✅ 完成 | 100%（v1-v5 medium + fast v1 + slow v1 + mr v1）|
+| 4 — 策略开发 | ✅ 完成 | 100%（270 策略：I + AG，4 timeframe）|
 | 5 — 优化器 | ✅ 完成 | 100% |
 | 6 — 验证体系 | ✅ 完成 | 100% |
 | 7 — 归因分析 | ✅ 完成 | 100% |
 | 8 — Portfolio 构建 | ✅ 完成 | 100% |
-| 9 — 扩展品种 | ⏳ 待实盘数据 | 0% |
-| 10 — Pipeline + CLI | 🔄 进行中 | 70%（缺 HTML 报告）|
+| 9 — 扩展品种 | ✅ I + AG 完成 | 50%（RB/HC/J/JM 待开发）|
+| 10 — Pipeline + CLI | ✅ 完成 | 95%（batch pipeline + 自动报告命名）|
 | 11 — 监控 + 实盘 | 🔄 进行中 | 60%（缺 paper trading）|
 
 **测试覆盖：** 576+ tests, 100% pass rate
 
-### 已实现策略
+### 策略规模
 
-| 策略 | Regime | Horizon | 信号维度 |
-|------|--------|---------|---------|
-| tsmom_fast | trending | fast | momentum |
-| tsmom_medium | trending | medium | momentum |
-| tsmom_slow | trending | slow | momentum |
-| trend_medium_v1 | trending | medium | momentum + volume |
-| trend_medium_v2 | trending | medium | momentum + volume |
-| trend_medium_v3 | trending | medium | momentum + OI |
-| trend_medium_v4 | trending | medium | momentum + volume |
-| trend_medium_v5 | trending | medium | momentum + technical |
-| trend_fast_v1 | trending | fast | momentum + volume |
-| trend_slow_v1 | trending | slow | momentum + technical |
-| mr_v1 | mean_reversion | — | technical + momentum |
+| Group | 品种 | 方向 | Regime | Timeframes | 策略数 | 通过验证 |
+|-------|------|------|--------|-----------|--------|---------|
+| strong_trend/long/I | I | long | strong_trend | daily/1h/2h/4h | 110 | 102 |
+| strong_trend/long/AG | AG | long | strong_trend | daily/1h/2h/4h | 40 | 35 |
+| strong_trend/short/AG | AG | short | strong_trend | daily/1h/2h/4h | 40 | 27 |
+| mild_trend/long/I | I | long | mild_trend | daily/1h/2h/4h | 40 | 待标注 |
+| mild_trend/short/I | I | short | mild_trend | daily/1h/2h/4h | 40 | 18 |
+
+### Research 文件夹命名
+
+研究结果目录格式：`research/{regime}/{direction}/{instrument}/{timeframe}/v{N}_{+/-}{return}%/`
+
+- return 从 `oos.html` 的「总收益」字段提取，保留两位小数，正数带 `+`
+- 示例：`research/strong_trend/long/AG/1h/v10_+97.98%/`
+- OOS 包含该品种/方向下**所有** `split=oos` 的 regime periods（不按 regime 筛选）
+- `run_single_strategy_pipeline()` 自动从 oos.html 提取总收益并命名
 
 ### 下一步优先级
 
-1. 连接 AlphaForge V7.1 进行真实回测
-2. RB 历史 Regime 标注（人工校正）
-3. 开发 mr_v2, mr_v3 (Keltner, CCI extreme)
-4. HTML 报告模板
-5. Paper Trading 验证
+1. mild_trend/long/I 的 regime 标注补全
+2. RB/HC/J/JM 品种扩展
+3. Paper Trading 验证
+4. 完整 CLI 集成
 
 ---
 
@@ -685,3 +687,131 @@ af ml-train --symbols RB,I,J --model lgbm --factors returns_5d,volatility_20d --
 | MACD histogram 在稳态趋势中 ≈ 0 | 用 MACD line（fast_ema - slow_ema）判断方向，非 histogram |
 | 策略参数变异系数 > 0.5 | 参数不稳定，可能过拟合，重新设计或扩大参数范围 |
 | `context.bar_index` 在 `on_bar` 中使用 | 正确——QBase 策略通过此索引查 `on_init_arrays` 预计算数组 |
+| HTML 报告 K 线图为空 | **必须**传 `bar_data={symbol: bars}` 给 `reporter.generate()`。用 `_load_bars_for_labels()` 加载对应时段的 BarArray，绝不可省略此参数 |
+| 报告中看不到指标面板 | 策略必须实现 `get_indicator_panels(datetimes)` 方法；`backtest_runner` 自动注入 metadata |
+
+---
+
+### 指标面板可视化系统
+
+QBase 策略支持在 AlphaForge HTML 报告中渲染指标叠加和副图 panel（类 TradingView 风格）。
+
+#### 架构分工
+
+| 角色 | 负责什么 |
+|------|---------|
+| QBase（策略层） | 提供数据：从策略对象提取预计算指标数组，分类为 overlay/subplot，打包成 `result.metadata['indicator_panels']` |
+| AlphaForge（报告层） | 渲染：用 Plotly make_subplots 画 K 线主图 + 多副图 panel，X 轴联动 zoom |
+
+#### 策略侧实现
+
+每个策略需覆盖 `get_indicator_panels(datetimes)` 方法：
+
+```python
+def get_indicator_panels(self, datetimes: np.ndarray) -> dict:
+    return {
+        "overlays": [
+            self._make_overlay("EMA(20)", datetimes, self._ema_fast, color="#ffab40"),
+            self._make_overlay("EMA(50)", datetimes, self._ema_slow, color="#ab47bc"),
+        ],
+        "subplots": [
+            self._make_subplot(
+                "RSI(14)",
+                [self._make_subplot_trace("RSI", datetimes, self._rsi, color="#bb86fc")],
+                horizontal_lines=[30, 70], y_range=[0, 100],
+            ),
+        ],
+    }
+```
+
+#### 分类规则
+
+| 指标类型 | 面板分类 | 示例 |
+|---------|---------|------|
+| 价格级别 | overlay（主图叠加） | EMA, SuperTrend, Bollinger, Donchian, KAMA, HMA, MAMA |
+| 振荡器 | subplot（独立副图） | RSI, MACD, ADX, Aroon, CCI, Fisher, STC |
+| 量价类 | subplot | CMF, OBV, Force Index, MFI, Chaikin, Klinger |
+| 策略信号 | subplot（自动添加） | 由 backtest_runner 自动追加为最后一个 panel |
+
+#### 辅助方法（QBaseStrategy 基类）
+
+```python
+# 主图叠加线
+_make_overlay(name, datetimes, data, style="line"|"step"|"dash", color=None)
+
+# 副图 panel
+_make_subplot(name, traces, height_ratio=0.15, zero_line=False,
+              horizontal_lines=None, y_range=None)
+
+# 副图内单条 trace
+_make_subplot_trace(name, datetimes, data, style="line"|"bar"|"area"|"step"|"dash",
+                    color=None, color_positive=None, color_negative=None)
+```
+
+#### 自动注入流程
+
+`backtest_runner.run_qbase_backtest()` 自动处理：
+1. 回测完成后调用 `strategy.get_indicator_panels(datetimes)`
+2. 自动追加 Signal subplot 作为最后一个 panel
+3. 自动为缺少颜色的 trace 分配颜色
+4. 写入 `result.metadata['indicator_panels']`
+5. AlphaForge `HTMLReportGenerator` 自动读取并渲染
+
+---
+
+### Signal Blending Report
+
+QBase Signal Blending 回测使用 AlphaForge 的 `generate_signal_blend_report()` 生成 hybrid 报告。
+
+#### 调用方式
+
+```python
+from alphaforge.report import HTMLReportGenerator
+
+reporter = HTMLReportGenerator()
+reporter.generate_signal_blend_report(
+    result,                              # blended backtest 结果
+    "reports/signal_blend.html",
+    bar_data={"I": bars},
+    freq="1h",
+    strategy_links={"v1": "v1.html"},    # 可选
+)
+```
+
+#### 数据打包
+
+`scripts/build_portfolio.py` 在 `build_blended_backtest()` 中自动将以下数据打包到 `result.metadata['signal_blend']`：
+
+- `weights` — 各策略权重
+- `fdm` — Forecast Diversification Multiplier
+- `per_strategy_signals` — 各策略 scaled forecast 数组
+- `blended_signal` — 合并后 forecast
+- `net_position` — 净仓位（手数）
+- `per_strategy_metrics` — 各策略独立回测指标（sharpe, return, dd等）
+- `per_strategy_equity` — 各策略归一化 equity 曲线
+- `forecast_correlation` — 信号相关性矩阵
+- `datetimes` — 时间轴
+
+#### 报告结构
+
+| Section | 说明 |
+|---------|------|
+| Metrics Cards | 净信号 9 个 KPI |
+| Blend Equity Overlay | 净信号粗线 + 各策略细线归一化对比 |
+| K-Line | 按策略着色买卖标记 + 净仓位副图（绿红柱+白线） |
+| Signal Decomposition | 各策略加权 forecast 堆叠面积图 |
+| Weight Pie | 策略权重分配饼图 |
+| Drawdown / Monthly Heatmap / Rolling Sharpe | 标准分析图 |
+| Forecast Correlation | 信号相关性矩阵热力图 |
+| Strategy Comparison | 各策略 vs BLENDED 对比表 |
+| Trade Table + Cost Breakdown | 交易明细 |
+
+#### 与单策略报告和 Portfolio 报告的关系
+
+三种报告类型共存，互不影响：
+
+| 报告 | 方法 | 适用场景 |
+|------|------|---------|
+| 单策略 | `reporter.generate()` | 单个策略回测 |
+| Signal Blending | `reporter.generate_signal_blend_report()` | N策略→1净信号→1仓位 |
+| Portfolio | `reporter.generate_portfolio_report()` | N策略→N独立仓位 |
