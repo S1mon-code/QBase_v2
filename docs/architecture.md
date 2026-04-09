@@ -1,4 +1,4 @@
-# QBase_v2 Architecture
+# QBase_v2.5 Architecture
 
 ## 系统定位
 
@@ -15,7 +15,7 @@
     │                              │
     ▼                              ▼
 Regime 预判               Regime 历史标注
-(mild_trend, up)          (Bry-Boschan + 人工)
+(long/short)              (Bry-Boschan + R²过滤 + 人工)
     │                              │
     └──────────┬───────────────────┘
                │
@@ -25,13 +25,19 @@ Regime 预判               Regime 历史标注
     └──────────┬──────────┘
                │
     ┌──────────▼──────────┐
-    │   Strategy Pool      │  按 regime × direction 组织
+    │   Strategy Pool      │  按 regime (long/short) 组织
     │   4 信号维度          │  Momentum / Carry / Volume / Technical
     │   4 周期同步          │  1h / 2h / 4h / daily
     └──────────┬──────────┘
                │
     ┌──────────▼──────────┐
+    │   SQS Scoring        │  策略质量评分 (v2.5)
+    │   Kill Switch        │  自动熔断检查 (v2.5)
+    └──────────┬──────────┘
+               │
+    ┌──────────▼──────────┐
     │   Signal Blender     │  多策略信号加权合并 → 单一净信号
+    │   Portfolio Engine   │  自动化组合选择 (v2.5)
     └──────────┬──────────┘
                │
     ┌──────────▼──────────┐
@@ -68,10 +74,8 @@ risk/ ────────┼── risk/chandelier (Phase 3)       ││
               │                                   ││
 strategies/ ──┼── templates/ (Phase 4)          ◄─┘│
               │   baselines/                    ◄──┘
-              │   mild_trend/                      # I strategies (long 150 + short 40)
-              │   strong_trend/                    # AG strategies (long 40 + short 40)
-              │   mean_reversion/
-              │   crisis/
+              │   long/                            # Long regime: I (190) + AG (40)
+              │   short/                           # Short regime: I (40) + AG (40)
               │
 optimizer/ ───┼── core, two_phase (Phase 5)
               │   regime_optimizer
@@ -97,6 +101,12 @@ pipeline/ ────── dev_pipeline (854 lines, 主流程)
               │   qbase_config.py (统一配置中心)
               │   utils.py (helper 函数)
               │   runner, cli (Phase 10)
+              │
+scripts/ ─────── sqs.py (SQS 策略质量评分, v2.5)
+              │   portfolio_engine.py (自动化 Portfolio 选择, v2.5)
+              │   run_portfolio.py (Portfolio 运行入口, v2.5)
+              │
+validation/ ──┼── config.yaml (验证阈值统一配置, v2.5)
               │
 reporting/ ───── indicator_panels (via base_strategy + backtest_runner)
               │   base_strategy.py 新增 get_indicator_panels() + 辅助方法

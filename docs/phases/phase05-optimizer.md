@@ -143,7 +143,7 @@ trials:
     strategy: "trend_medium_v1"
     timestamp: "2026-04-01T10:30:00"
     params: {st_period: 10, ...}
-    regime: "strong_trend"
+    regime: "long"
     direction: "up"
     symbol: "RB"
     freq: "1h"

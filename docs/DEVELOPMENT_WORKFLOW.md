@@ -1,6 +1,6 @@
-# QBase_v2 单策略开发标准流程 v4.0
+# QBase_v2.5 单策略开发标准流程 v5.0
 
-> 版本：v4.0 | 更新：2026-04-02
+> 版本：v5.0 | 更新：2026-04-09
 > 适用范围：单策略从零到验证完成。Portfolio 构建见 [PORTFOLIO.md](PORTFOLIO.md)。
 > 详细规格：Phase 4-7 详见 [phases/](phases/) 目录，本文档为流程总览，不重复细节。
 > 策略详细列表与指标面板文档见 [STRATEGY_GUIDE.md](STRATEGY_GUIDE.md)。
@@ -23,52 +23,34 @@ QBase_v2/
 │   │   ├── tsmom_medium.py
 │   │   └── tsmom_slow.py
 │   │
-│   ├── strong_trend/                          # Regime: 强趋势
-│   │   ├── long/                              # 方向: 只做多
-│   │   │   ├── AG/                            # 品种: 白银（大写 ticker）
-│   │   │   │   ├── daily/
-│   │   │   │   │   ├── __init__.py
-│   │   │   │   │   ├── v1.py
-│   │   │   │   │   └── ...
-│   │   │   │   ├── 1h/
-│   │   │   │   ├── 2h/
-│   │   │   │   └── 4h/
-│   │   │   ├── RB/                            # 品种: 螺纹钢
-│   │   │   └── HC/                            # 品种: 热卷
-│   │   └── short/                             # 方向: 只做空
-│   │       ├── AG/
-│   │       └── ...
-│   │
-│   ├── mild_trend/                            # Regime: 温和趋势
-│   │   ├── long/
-│   │   │   ├── I/                             # 品种: 铁矿石（I 在 mild_trend）
-│   │   │   │   ├── daily/
-│   │   │   │   │   ├── __init__.py
-│   │   │   │   │   ├── v1.py
-│   │   │   │   │   ├── v11.py
-│   │   │   │   │   └── ...
-│   │   │   │   ├── 1h/
-│   │   │   │   ├── 2h/
-│   │   │   │   └── 4h/
-│   │   │   └── AG/
-│   │   └── short/
-│   │       ├── I/
-│   │       └── ...
-│   │
-│   ├── mean_reversion/                        # Regime: 均值回归（无方向分层，双向交易）
-│   │   ├── I/
+│   ├── long/                                  # Regime: Long（v2.5 简化）
+│   │   ├── I/                                 # 品种: 铁矿石
+│   │   │   ├── daily/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── v1.py
+│   │   │   │   └── ...
+│   │   │   ├── 1h/
+│   │   │   ├── 2h/
+│   │   │   └── 4h/
+│   │   ├── AG/                                # 品种: 白银
 │   │   │   ├── daily/
 │   │   │   ├── 1h/
-│   │   │   └── ...
-│   │   └── AG/
+│   │   │   ├── 2h/
+│   │   │   └── 4h/
+│   │   ├── RB/                                # 品种: 螺纹钢
+│   │   └── HC/                                # 品种: 热卷
 │   │
-│   └── crisis/                                # Regime: 危机
-│       ├── long/
-│       └── short/
+│   └── short/                                 # Regime: Short（v2.5 简化）
+│       ├── I/
+│       │   ├── daily/
+│       │   ├── 1h/
+│       │   ├── 2h/
+│       │   └── 4h/
+│       └── AG/
 │
 ├── research/                                  # 【研究产出】镜像 strategies/ 结构
-│   ├── mild_trend/
-│   │   ├── long/
+│   ├── long/                                  # Regime: Long
+│   │   ├── long/                              # Direction: long
 │   │   │   ├── I/
 │   │   │   │   ├── daily/
 │   │   │   │   │   ├── v11_+6.01%/
@@ -81,18 +63,9 @@ QBase_v2/
 │   │   │   │   │   └── summary.yaml           # 该 timeframe 所有版本汇总
 │   │   │   │   └── 1h/
 │   │   │   └── AG/
-│   │   └── short/
-│   ├── strong_trend/
-│   │   ├── long/
-│   │   │   ├── AG/
-│   │   │   │   ├── 1h/
-│   │   │   │   │   ├── v1/
-│   │   │   │   │   └── ...
-│   │   │   │   └── daily/
-│   │   │   └── RB/
-│   │   └── short/
-│   ├── mean_reversion/                        # 无 direction 层
-│   └── crisis/
+│   │   └── short/                             # Direction: short（如有）
+│   └── short/                                 # Regime: Short
+│       └── ...
 │
 ├── research_log/
 │   └── trials/
@@ -103,18 +76,16 @@ QBase_v2/
         └── {symbol}.yaml                      # Regime 标注
 ```
 
-**层级规则：** `{regime}/{direction}/{instrument}/{timeframe}/v{N}.py`
+**层级规则：** `{regime}/{instrument}/{timeframe}/v{N}.py`（v2.5 简化，regime = long/short）
 
 **品种目录使用大写 ticker：** I, AG, RB, HC, J, JM
 
-**Mean Reversion 例外：** `mean_reversion/{instrument}/{timeframe}/v{N}.py`（无方向分层，MR 策略天然双向交易）
-
-**策略 name 属性：** `name = "{regime}_{direction}_{instrument}_{timeframe}_v{N}"`
+**策略 name 属性：** `name = "{regime}_{instrument}_{timeframe}_v{N}"`
 
 示例：
-- `"mild_trend_long_I_daily_v11"`
-- `"strong_trend_long_AG_1h_v1"`
-- `"mean_reversion_I_daily_v3"`（MR 无方向前缀）
+- `"long_I_daily_v11"`
+- `"long_AG_1h_v1"`
+- `"short_I_daily_v3"`
 
 ---
 
@@ -130,11 +101,11 @@ QBase_v2/
 views:
   I:
     direction: long          # long / short / neutral
-    regime: mild_trend       # strong_trend / mild_trend / mean_reversion / crisis
+    regime: long             # long / short（v2.5 简化为两类）
   AG:
     direction: long
-    regime: strong_trend
-updated_at: "2026-04-02"
+    regime: long
+updated_at: "2026-04-09"
 updated_by: "simon"
 ```
 
@@ -152,11 +123,11 @@ updated_by: "simon"
 ```yaml
 - start: "2015-06-01"
   end: "2016-02-28"
-  regime: mild_trend
+  regime: long              # long / short（v2.5 两类）
   direction: up
   driver: "供给侧改革推动价格上涨"
-  buffer_start: "2015-04-01"
-  buffer_end: "2016-04-30"
+  buffer_start: "2015-05-01"
+  buffer_end: "2016-03-31"
   split: train              # train / oos / holdout
 ```
 
@@ -165,9 +136,9 @@ updated_by: "simon"
 ```python
 from pipeline.dev_pipeline import run_baselines
 
-baselines = run_baselines("I", "long", "mild_trend", freq="daily")
+baselines = run_baselines("I", "long", "long", freq="daily")
 # 输出: {"fast": 0.42, "medium": 0.58, "slow": 0.31}
-# 保存: research/mild_trend/long/I/daily/baselines/{fast,medium,slow}.html
+# 保存: research/long/long/I/daily/baselines/{fast,medium,slow}.html
 ```
 
 **这三个 Sharpe 是后续所有策略的最低门槛。**
@@ -197,11 +168,11 @@ baselines = run_baselines("I", "long", "mild_trend", freq="daily")
 #### B2. 编写策略代码
 
 ```python
-# strategies/mild_trend/long/I/daily/v11.py
+# strategies/long/I/daily/v11.py
 from strategies.templates.base_strategy import QBaseStrategy
 
-class MildTrendLongIDailyV11(QBaseStrategy):
-    name: ClassVar[str] = "mild_trend_long_I_daily_v11"
+class LongIDailyV11(QBaseStrategy):
+    name: ClassVar[str] = "long_I_daily_v11"
     regime: ClassVar[str] = "trending"
     horizon: ClassVar[str] = "medium"
     signal_dimensions: ClassVar[list[str]] = ["momentum", "volume"]
@@ -381,7 +352,7 @@ result = engine.run(strategy, {symbol: train_bars})
 reporter = engine.create_reporter()
 reporter.generate(
     result,
-    output_path="research/mild_trend/long/I/daily/v11_+6.01%/train.html",
+    output_path="research/long/long/I/daily/v11_+6.01%/train.html",
     bar_data={symbol: train_bars},  # 必须传入，否则 K 线图为空
 )
 ```
@@ -401,6 +372,26 @@ reporter.generate(
 - 交易明细表
 - 核心指标：Sharpe, Calmar, MaxDD, Win Rate, Profit Factor
 - 衰减检测（DecayDetector）：stability_score, rolling_sharpe_slope
+
+---
+
+### Phase G: SQS 评分 + Kill Switch + Portfolio Engine（v2.5）
+
+#### G1. SQS 策略质量评分
+
+通过验证的策略自动进入 SQS 评分（`scripts/sqs.py`），综合打分筛选候选策略。
+
+#### G2. Kill Switch 检查
+
+`validation/config.yaml` 统一定义熔断阈值。触发 Kill Switch 的策略自动剔除。
+
+#### G3. Portfolio Engine 自动选择
+
+`scripts/portfolio_engine.py` 基于 SQS 评分 + 相关性约束自动构建组合，与 Carver Signal Blending（`portfolio/`）互补：
+- **Carver Signal Blending**：手动精调信号合并权重（适合成熟组合）
+- **Portfolio Engine**：自动化 SQS 驱动选择（适合快速筛选和扩展品种）
+
+运行入口：`python scripts/run_portfolio.py`
 
 ---
 
@@ -481,11 +472,13 @@ reporter.generate(
 | Position Sizing 频率规则 | **Daily**：连续调仓 + 10% buffer（每 bar 重算，偏差 > 10% 才调仓）。**1H 及更快频率**：固定入场 sizing（入场时计算一次，不持续调仓）。**Portfolio 层面**：加法合并 `daily_lots + hourly_lots = total` |
 | Signal Blender Pipeline | Signal Blender 使用 Carver 标准 forecast combination pipeline: Forecast Scaling (avg\|f\|=10) → Capping (±20) → 加权合并 → FDM → Re-cap → Direction Filter → Vol-target Sizing。策略输出 [-1,+1]，Blender 缩放到 [-20,+20]。多频率在 1H 网格上合并（daily 信号 forward-fill） |
 | Timeframe 杠铃 | 推荐 Daily(55%) + 1H(45%) 核心组合，4H/2H 作为可选扩展 |
-| MR 无方向层 | Mean Reversion 策略天然双向，目录中无 long/short 分层 |
+| Regime 两类 | v2.5 简化为 Long/Short 两类，不再有 mean_reversion/crisis 目录 |
 | 高 Sharpe 低收益预警 | Sharpe >= 1.0 但年化收益 < 5% 必须标注 WARNING |
 | OOS 全 regime | OOS 包含该品种/方向下**所有** `split=oos` 的 regime periods，不按 regime 类型筛选 |
 | Research 文件夹命名 | `v{N}_{+/-}{return}%`，return 从 `oos.html` 的「总收益」字段提取，保留两位小数，正数带 `+` |
 | 品种目录大写 | 目录路径和文本中品种 ticker 一律大写：I, AG, RB, HC, J, JM |
+| SQS + Kill Switch | v2.5 新增：策略通过验证后自动 SQS 评分，Kill Switch 阈值见 `validation/config.yaml` |
+| Portfolio Engine | v2.5 新增：`scripts/portfolio_engine.py` 自动化组合选择，与 Carver Signal Blending 互补 |
 
 ---
 
@@ -495,17 +488,17 @@ reporter.generate(
 
 ```python
 from pipeline.utils import run_baselines, run_single_strategy_pipeline
-from strategies.mild_trend.long.I.daily.v11 import MildTrendLongIDailyV11
+from strategies.long.I.daily.v11 import LongIDailyV11
 
 # Phase A3: 建立 Baseline（每个品种/方向只需跑一次）
-baselines = run_baselines("I", "long", "mild_trend", freq="daily")
+baselines = run_baselines("I", "long", "long", freq="daily")
 
 # Phase B-F: 全流程（含优化 + 验证 + 归因 + AlphaForge 报告）
 result = run_single_strategy_pipeline(
-    MildTrendLongIDailyV11,
+    LongIDailyV11,
     symbol="I",
     direction="long",
-    regime="mild_trend",
+    regime="long",
     timeframe="daily",
     version="v11",
 )
@@ -515,17 +508,17 @@ print(result["validation"]["oos_annualized_return"])  # OOS 年化收益
 print(result["validation"]["hard_reject"])          # 是否硬淘汰
 print(result["validation"]["profit_factor"])        # Profit Factor
 print(result["output_dir"])                         # 输出路径
-# -> research/mild_trend/long/I/daily/v11_+6.01%/
+# -> research/long/long/I/daily/v11_+6.01%/
 ```
 
 跳过优化（使用已知参数）：
 
 ```python
 result = run_single_strategy_pipeline(
-    MildTrendLongIDailyV11,
+    LongIDailyV11,
     symbol="I",
     direction="long",
-    regime="mild_trend",
+    regime="long",
     timeframe="daily",
     version="v11",
     params_override={"fast_period": 12, "slow_period": 26, "chandelier_mult": 2.5},

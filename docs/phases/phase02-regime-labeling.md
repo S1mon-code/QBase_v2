@@ -6,14 +6,14 @@
 
 ---
 
-## 4 个 Regime
+## 2 类 Regime（v2.5 简化）
 
-| Regime | 基本面语言 | 涨跌幅标准(1-3月) | 策略池 |
-|--------|-----------|:------------------:|--------|
-| **Strong Trend** | 强势上涨/急跌 | > 20% | 趋势跟踪（宽止损） |
-| **Mild Trend** | 温和上涨/温和下跌 | 5-20% | 趋势跟踪（窄止损） |
-| **Mean Reversion** | 震荡/平衡 | < 5% | 均值回归 |
-| **Crisis** | 政策突变/黑天鹅 | ATR > 3σ | 防御模式 |
+| Regime | 基本面语言 | 标注方法 | 策略池 |
+|--------|-----------|---------|--------|
+| **Long** | 上涨趋势（强/温和） | Bry-Boschan + R² 过滤 | 趋势跟踪（做多） |
+| **Short** | 下跌趋势（强/温和） | Bry-Boschan + R² 过滤 | 趋势跟踪（做空） |
+
+> **v2.5 变更：** 从 4 类 (strong_trend/mild_trend/mean_reversion/crisis) 简化为 2 类 (long/short)，±1 月 buffer，6:3:1 分割。
 
 ---
 
@@ -25,11 +25,10 @@ def auto_label(prices, config) -> List[RegimeLabel]:
     """
     1. 识别局部 Peak/Trough（前后 N 个月最高/最低）
     2. 计算相邻极值间涨跌幅
-    3. 按阈值分类:
-       - |涨跌| > strong_trend_pct: Strong Trend
-       - |涨跌| 在 mild_trend_pct ~ strong_trend_pct: Mild Trend
-       - |涨跌| < mild_trend_pct 且持续 > 1月: Mean Reversion
-       - ATR > crisis_atr_sigma × σ: Crisis
+    3. 按方向分类 (v2.5):
+       - 上涨段 → Long
+       - 下跌段 → Short
+       - R² 过滤弱趋势段
     4. 最小持续期: 1 个月
     5. 前后各加 buffer_months 个月
     """
@@ -38,19 +37,12 @@ def auto_label(prices, config) -> List[RegimeLabel]:
 ## 阈值配置
 
 ```yaml
-# config/regime_thresholds.yaml
+# config/regime_thresholds.yaml (v2.5 简化)
 default:
-  strong_trend_pct: 0.20
-  mild_trend_pct: 0.05
-  crisis_atr_sigma: 3.0
   min_duration_months: 1
-  buffer_months: 2
-
-overrides:
-  I:
-    strong_trend_pct: 0.25     # 铁矿波动大
-  JM:
-    strong_trend_pct: 0.15     # 焦煤波动小
+  buffer_months: 1             # v2.5: ±1月 buffer
+  r2_filter_threshold: 0.3     # R² 过滤弱趋势
+  split_ratio: [6, 3, 1]       # train/oos/holdout = 6:3:1
 ```
 
 ---
@@ -65,22 +57,22 @@ labeled_by: "auto + manual review"
 labels:
   - start: "2015-06-01"
     end: "2016-02-28"
-    regime: strong_trend
+    regime: long
     direction: up
     driver: "供给侧改革"
-    buffer_start: "2015-04-01"
-    buffer_end: "2016-04-30"
+    buffer_start: "2015-05-01"
+    buffer_end: "2016-03-31"
     split: train                # ← 标注时即分好
 
   - start: "2020-11-01"
     end: "2021-05-31"
-    regime: strong_trend
+    regime: long
     direction: up
     split: oos
 
   - start: "2024-01-01"
     end: "2024-08-31"
-    regime: strong_trend
+    regime: long
     direction: up
     split: holdout
 ```

@@ -29,11 +29,11 @@ total_margin_limit: 0.80    # 总保证金上限 80%
 **config/fundamental_views.yaml（模板）:**
 ```yaml
 views:
-  RB: { direction: long, regime: mild_trend }
-  HC: { direction: long, regime: mild_trend }
-  I:  { direction: short, regime: strong_trend }
-  J:  { direction: neutral, regime: mean_reversion }
-  JM: { direction: neutral, regime: mean_reversion }
+  RB: { direction: long, regime: long }
+  HC: { direction: long, regime: long }
+  I:  { direction: short, regime: short }
+  J:  { direction: neutral, regime: long }
+  JM: { direction: neutral, regime: long }
 updated_at: "2026-04-01"
 updated_by: "基本面团队"
 ```

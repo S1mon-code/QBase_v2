@@ -15,22 +15,15 @@ strategies/
 │   ├── trending_template.py
 │   └── mean_reversion_template.py
 ├── baselines/                          # TSMOM Baselines
-├── mild_trend/                         # I 策略 (long 150 + short 40)
-│   ├── long/I/{daily,1h,2h,4h}/
-│   └── short/I/{daily,1h,2h,4h}/
-├── strong_trend/                       # AG 策略 (long 40 + short 40)
-│   ├── long/AG/{daily,1h,2h,4h}/
-│   └── short/AG/{daily,1h,2h,4h}/
-├── mean_reversion/                     # 无方向分层，双向交易
-│   └── {instrument}/{daily,1h,2h,4h}/
-└── crisis/
-    ├── long/{instrument}/{timeframes}/
-    └── short/{instrument}/{timeframes}/
+├── long/                               # Long regime（v2.5 简化）
+│   ├── I/{daily,1h,2h,4h}/            # I 策略 (190)
+│   └── AG/{daily,1h,2h,4h}/           # AG 策略 (40)
+└── short/                              # Short regime（v2.5 简化）
+    ├── I/{daily,1h,2h,4h}/            # I 策略 (40)
+    └── AG/{daily,1h,2h,4h}/           # AG 策略 (40)
 ```
 
-**层级规则：** `regime / direction / instrument / timeframe / v{N}.py`
-
-**Mean Reversion 例外：** `mean_reversion / instrument / timeframe / v{N}.py`（双向交易，无方向分层）
+**层级规则：** `regime / instrument / timeframe / v{N}.py`（v2.5, regime = long/short）
 
 ### research/（镜像 strategies/）
 
@@ -53,10 +46,10 @@ research/{regime}/{direction}/{instrument}/{timeframe}/v{N}_{+/-}{return}%/
 **name 属性：**
 
 ```python
-name = "{regime}_{direction}_{instrument}_{timeframe}_v{N}"
+name = "{regime}_{instrument}_{timeframe}_v{N}"
 ```
 
-示例：`mild_trend_long_I_daily_v1`、`strong_trend_short_AG_1h_v5`
+示例：`long_I_daily_v1`、`short_AG_1h_v5`
 
 **Research 目录：** `v{N}_{+/-}{return}%`（OOS 总收益，保留两位小数，正数带 `+`）
 
@@ -73,7 +66,7 @@ from strategies.templates.base_strategy import QBaseStrategy
 
 class MyStrategy(QBaseStrategy):
     # === 必填类属性 ===
-    name: ClassVar[str] = "mild_trend_long_I_daily_v1"
+    name: ClassVar[str] = "long_I_daily_v1"
     regime: ClassVar[str] = "trending"          # "trending" | "mean_reversion"
     horizon: ClassVar[str] = "medium"           # "fast" | "medium" | "slow" | None (MR)
     signal_dimensions: ClassVar[list[str]] = ["momentum", "volume"]
@@ -156,6 +149,8 @@ class MyStrategy(QBaseStrategy):
 - [ ] 运行归因 → 保存 `attribution.md`
 - [ ] 生成 AlphaForge train.html + oos.html（Industrial 模式，必须传 bar_data）
 - [ ] 对照准入标准判定 pass/fail（见 [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)）
+- [ ] SQS 评分通过（`scripts/sqs.py`，v2.5）
+- [ ] Kill Switch 检查通过（`validation/config.yaml`，v2.5）
 - [ ] 更新 summary.yaml
 
 ---

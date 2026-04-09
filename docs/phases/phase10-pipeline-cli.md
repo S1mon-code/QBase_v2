@@ -16,11 +16,11 @@ qbase label I --validate               # 检查完整性
 
 # 策略运行
 qbase run trend_medium_v1.py --symbol RB --freq 1h --start 2013
-qbase run trend_medium_v1.py --symbol RB --freq 1h --regime strong_trend --direction up
+qbase run trend_medium_v1.py --symbol RB --freq 1h --regime long --direction up
 
 # 优化
 qbase optimize trend_medium_v1.py --symbol RB --freq 1h \
-    --regime strong_trend --direction up --trials 80
+    --regime long --direction up --trials 80
 
 # 验证
 qbase validate trend_medium_v1 --regime-cv         # Layer 1
@@ -35,7 +35,7 @@ qbase validate trend_medium_v1 --all               # 全部 6 层
 qbase attribute trend_medium_v1 --symbol RB
 
 # Portfolio
-qbase portfolio build --symbol RB --regime strong_trend
+qbase portfolio build --symbol RB --regime long
 qbase portfolio score --symbol RB
 qbase portfolio report --symbol RB
 

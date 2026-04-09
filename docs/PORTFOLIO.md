@@ -1,7 +1,7 @@
-# QBase_v2 Portfolio 构建指南
+# QBase_v2.5 Portfolio 构建指南
 
-> 版本：v2.0 | 更新：2026-04-02
-> 状态：**Portfolio 构建完成** — I（mild_trend）+ AG（strong_trend）已上线
+> 版本：v2.5 | 更新：2026-04-09
+> 状态：**Portfolio 构建完成** — I（long）+ AG（long）已上线
 > 前置条件：至少 3 个策略通过完整单策略流程（Phase B-E）
 
 ---
@@ -110,7 +110,20 @@ Portfolio 构建是在多个验证通过的单策略基础上，通过 Signal Bl
 - 独立 Alpha > 20%
 - Industrial 衰减 < 20%
 
-完整配置见 `portfolio/mild_trend/long/I/selection_criteria.yaml`
+完整配置见 `portfolio/long/I/selection_criteria.yaml`
+
+### v2.5 新增：SQS 自动化选择
+
+v2.5 引入两条平行的 Portfolio 构建路径：
+
+| 路径 | 工具 | 适用场景 |
+|------|------|---------|
+| **Carver Signal Blending** | `portfolio/signal_blender.py` | 手动精调信号合并权重，适合成熟组合 |
+| **SQS Portfolio Engine** | `scripts/portfolio_engine.py` | 自动化 SQS 驱动选择，适合快速筛选和扩展品种 |
+
+**SQS 评分**（`scripts/sqs.py`）综合 OOS Sharpe、稳健性、Alpha 独立性等维度打分，Kill Switch（`validation/config.yaml`）自动剔除不合格策略。
+
+**运行入口：** `python scripts/run_portfolio.py`
 
 ---
 
@@ -183,9 +196,8 @@ lots = clip(lots, max_by_margin)                              # 保证金上限
 
 | 基本面预判 | 激活策略集 | 资金比例 |
 |-----------|----------|---------|
-| strong_trend / mild_trend | Trending 策略集 | 100% |
-| mean_reversion | MR 策略集 | 100% |
-| crisis | 所有策略集 | 50%（强制减仓） |
+| long | Long 策略集 | 100% |
+| short | Short 策略集 | 100% |
 
 **不做 Regime 间混合分配**（基本面团队给确定性预判，不是概率）。
 
@@ -230,7 +242,7 @@ lots = clip(lots, max_by_margin)                              # 保证金上限
 Portfolio 完成后的报告存放：
 
 ```
-reports/mild_trend/long/I/
+reports/long/I/
 ├── portfolio_summary.html    # 主报告（权益叠加 + 相关性矩阵 + 权重饼图）
 ├── strategy_comparison.html  # 策略对比表
 ├── coverage_matrix.html      # Regime 覆盖矩阵
@@ -282,7 +294,7 @@ reports/mild_trend/long/I/
 > - Calmar = 4.314
 > - 策略间实际 correlation = 0.099
 >
-> **版本重编号说明：** 原 daily_v27 → v37，原 1h_v18 → v28（策略从 strong_trend 迁移至 mild_trend 后统一重编号）
+> **版本重编号说明：** 原 daily_v27 → v37，原 1h_v18 → v28（v2.5 策略从旧 regime 目录迁移至 long/ 后统一重编号）
 >
 > **Selection 方法：** 使用策略 **returns** 的 correlation，不是 forecast 的 correlation（threshold < 0.5）。Daily策略forecast在1H grid上forward-fill导致forecast correlation失真。
 >
@@ -303,8 +315,8 @@ reports/mild_trend/long/I/
 ## 代码入口
 
 ```python
-from strategies.mild_trend.long.I.daily.v37 import Strategy as DailyV37
-from strategies.mild_trend.long.I.hourly.v28 import Strategy as HourlyV28
+from strategies.long.I.daily.v37 import Strategy as DailyV37
+from strategies.long.I.hourly.v28 import Strategy as HourlyV28
 
 from portfolio.signal_blender import SignalBlender
 from portfolio.regime_allocator import RegimeAllocator
@@ -313,8 +325,8 @@ from portfolio.scorer import score_portfolio
 
 # 筛选通过硬条件的策略
 eligible = [
-    strategies.mild_trend.long.I.daily.v37,
-    strategies.mild_trend.long.I.hourly.v28,
+    strategies.long.I.daily.v37,
+    strategies.long.I.hourly.v28,
 ]
 
 # 构建 Signal Blender

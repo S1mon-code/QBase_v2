@@ -72,8 +72,8 @@ RB (Phase 4-9 已完成)
 单品种某类 regime 时段不够时，允许同板块品种辅助：
 
 ```
-I 的 strong_trend_up 只有 3 段
-→ 加入 J 的 strong_trend_up 2 段辅助训练
+I 的 long 时段只有 3 段
+→ 加入 J 的 long 2 段辅助训练
 → OOS/Holdout 仍只用 I
 ```
 

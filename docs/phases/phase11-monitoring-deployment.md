@@ -65,7 +65,7 @@ if trend(rolling_ic, lookback=90) < -threshold:
 # monitoring/regime_alert.py
 # 实际市场行为 vs 基本面预判 regime 是否匹配
 
-if actual_vol > crisis_threshold and current_regime != "crisis":
+if actual_trend_direction != current_regime:  # current_regime: "long" or "short"
     alert("Market behavior inconsistent with assigned regime")
 ```
 

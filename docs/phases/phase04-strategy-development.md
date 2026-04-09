@@ -35,7 +35,7 @@
 ```python
 class BaseStrategy(TimeSeriesStrategy):
     # 子类必须定义
-    regime: str          # "trending" / "mean_reversion"
+    regime: str          # "trending" (v2.5: long/short 共用 trending 模板)
     horizon: str         # "fast" / "medium" / "slow" / None(MR)
     signal_dimensions: list  # ["momentum", "carry"] 等
 
@@ -178,11 +178,10 @@ class TSMOMFast(BaseStrategy):
 
 1. `strategies/templates/base_strategy.py` — 统一信号接口
 2. `strategies/templates/trending_template.py` — 趋势策略模板
-3. `strategies/templates/mean_reversion_template.py` — 均值回归模板
+3. `strategies/templates/mean_reversion_template.py` — 均值回归模板（保留备用）
 4. `strategies/baselines/tsmom_*.py` — 3 个 TSMOM Baseline
-5. `strategies/trending/medium/v1-v5.py` — 第一批趋势策略
-6. `strategies/trending/fast/v6.py` + `slow/v7.py`
-7. `strategies/mean_reversion/v8.py`
+5. `strategies/long/{instrument}/{timeframe}/v*.py` — Long regime 策略
+6. `strategies/short/{instrument}/{timeframe}/v*.py` — Short regime 策略
 8. 每个策略的 research_log 记录
 9. 测试覆盖
 

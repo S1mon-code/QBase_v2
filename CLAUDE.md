@@ -1,8 +1,26 @@
-# QBase_v2 — Agent 开发指南
+# QBase_v2.5 — Agent 开发指南
 
 黑色系中国期货单品种多策略系统。基本面方向约束 + 技术面 regime 适配 + 多周期策略库。
 
 **复用：** indicators/（324 + Carry）+ AlphaForge V7.6.1。其余全部重写。
+
+---
+
+## v2.5 升级摘要
+
+| 变更项 | v2 | v2.5 |
+|--------|-----|------|
+| AlphaForge | V7.2 | V7.6.1 |
+| Regime 分类 | 4 类 (strong_trend/mild_trend/mean_reversion/crisis) | 2 类 (long/short) |
+| 策略路径 | `strategies/mild_trend/long/I/` | `strategies/long/I/` |
+| 策略命名 | `mild_trend_long_I_daily_v1` | `long_I_daily_v1` |
+| rf (Sharpe/Sortino) | 0.03 | 0.0 |
+| SQS 评分 | — | `scripts/sqs.py` |
+| Kill Switch | — | `validation/config.yaml` |
+| Portfolio Engine | — | `scripts/portfolio_engine.py` + `scripts/run_portfolio.py` |
+| 验证配置 | 硬编码 | `validation/config.yaml` 统一管理 |
+
+**从 v3.5 移植：** SQS Scoring、Kill Switch、Portfolio Engine、validation/config.yaml。
 
 ---
 
@@ -114,6 +132,7 @@ QBase_v2/
 ├── risk/                           # 风控模块
 ├── optimizer/                      # 优化器
 ├── validation/                     # 验证体系
+│   └── config.yaml                 # 验证阈值统一配置 (v2.5)
 ├── attribution/                    # 归因分析
 ├── portfolio/                      # Portfolio 构建
 ├── pipeline/                       # 流水线编排 + CLI
@@ -129,6 +148,9 @@ QBase_v2/
 ├── research_log/
 │   └── trials/                     # 全部试验记录 (Deflated Sharpe 用)
 ├── scripts/                        # 构建脚本
+│   ├── sqs.py                      # SQS 策略质量评分 (v2.5)
+│   ├── portfolio_engine.py         # 自动化 Portfolio 选择引擎 (v2.5)
+│   └── run_portfolio.py            # Portfolio 运行入口 (v2.5)
 ├── tests/                          # 单元测试 (576+)
 ├── docs/
 │   ├── phases/                     # 各 Phase 详细设计文档
@@ -251,7 +273,7 @@ from alphaforge.engine.event_driven import EventDrivenBacktester
 from alphaforge.engine.config import BacktestConfig
 ```
 
-**dynamic_margin 修复**：V7.2+ 已修复 dynamic_margin 平仓保证金释放不匹配问题，通过 `PositionEntry.margin_per_lot` 记录开仓时实际保证金率。
+**dynamic_margin 修复**：V7.6.1 已修复 dynamic_margin 平仓保证金释放不匹配问题，通过 `PositionEntry.margin_per_lot` 记录开仓时实际保证金率。
 
 ### BacktestConfig 推荐配置
 

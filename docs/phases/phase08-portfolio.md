@@ -89,9 +89,8 @@ lots = clip(lots, max_position_by_margin)
 ## Layer 2: Regime Allocation
 
 ```
-基本面预判 = mild_trend_up → 激活 Trending 策略集, 100% 资金
-基本面预判 = mean_reversion → 激活 MR 策略集, 100% 资金
-基本面预判 = crisis → 所有策略集减仓 50%
+基本面预判 = long → 激活 Long 策略集, 100% 资金
+基本面预判 = short → 激活 Short 策略集, 100% 资金
 ```
 
 **不做 Regime 间混合分配。** 基本面团队是确定性预判，不是概率分配。未来接基本面量化模型输出概率时可升级。
@@ -196,7 +195,7 @@ portfolio/
 > ```
 > reports/
 > ├── portfolio.html                    # Signal Blending 主报告
-> └── strong_trend/long/iron/
+> └── long/I/
 >     ├── daily/v27/oos.html           # 策略独立报告
 >     └── 1h/v18/oos.html             # 策略独立报告
 > ```

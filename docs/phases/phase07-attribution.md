@@ -61,7 +61,7 @@ strategy_returns = α + β_fast*TSMOM_1M + β_medium*TSMOM_3M + β_slow*TSMOM_12
 for trade in trades:
     trade.regime = lookup_regime(trade.entry_time, regime_labels)
 
-# 按 4 个 regime 聚合: n_trades, win_rate, avg_pnl, total_pnl
+# 按 2 个 regime (long/short) 聚合: n_trades, win_rate, avg_pnl, total_pnl
 # 新增: buffer/unlabeled 分类 → 看策略在 regime 过渡期表现
 ```
 
