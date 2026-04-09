@@ -26,7 +26,15 @@ from portfolio.weights import (
     inverse_volatility_weights,
 )
 from portfolio.constraints import check_horizon_balance
-from portfolio.selection import select_strategies
+from portfolio.selection import (
+    Confidence,
+    SelectionResult,
+    check_pairwise_correlations,
+    check_portfolio_fit,
+    get_passed_strategies,
+    select_strategies,
+    _grade_confidence,
+)
 from portfolio.scorer import PortfolioScore, score_portfolio
 from portfolio.rebalance import RebalanceDecision, check_rebalance
 from portfolio.retirement import RetirementCheck, check_retirement
@@ -377,94 +385,103 @@ class TestHorizonBalance:
 
 
 class TestSelectStrategies:
-    """Tests for select_strategies."""
+    """Tests for select_strategies (updated for SelectionResult return type)."""
 
     def _make_validation(
         self,
         regime_cv_verdict="PASS",
         industrial_sharpe=1.0,
+        decay_pct=0.1,
         dsr=0.97,
         bootstrap_verdict="ROBUST",
+        oos_sharpe=1.0,
+        max_drawdown=-0.10,
     ):
         """Create a mock validation result."""
         return SimpleNamespace(
             regime_cv=SimpleNamespace(verdict=regime_cv_verdict),
-            industrial=SimpleNamespace(industrial_sharpe=industrial_sharpe),
+            industrial=SimpleNamespace(industrial_sharpe=industrial_sharpe, decay_pct=decay_pct),
             deflated_sharpe=dsr,
             bootstrap=SimpleNamespace(verdict=bootstrap_verdict),
+            oos_sharpe=oos_sharpe,
+            max_drawdown=max_drawdown,
         )
+
+    def _full_candidate(self, **overrides):
+        """Create a candidate dict with all required fields."""
+        base = {
+            "validation": self._make_validation(),
+            "alpha": 0.05,
+            "activity": 0.01,
+            "n_trades": 50,
+            "freq": "daily",
+            "sharpe_at_2x_cost": 0.5,
+        }
+        base.update(overrides)
+        return base
 
     def test_all_pass(self):
         candidates = {
-            "s1": {"validation": self._make_validation(), "alpha": 0.05, "activity": 0.01},
-            "s2": {"validation": self._make_validation(), "alpha": 0.03, "activity": 0.005},
+            "s1": self._full_candidate(),
+            "s2": self._full_candidate(alpha=0.03, activity=0.005),
         }
         result = select_strategies(candidates)
-        assert result == ["s1", "s2"]
+        assert get_passed_strategies(result) == ["s1", "s2"]
 
     def test_regime_cv_fail(self):
         candidates = {
-            "s1": {
-                "validation": self._make_validation(regime_cv_verdict="FAIL"),
-                "alpha": 0.05,
-                "activity": 0.01,
-            },
+            "s1": self._full_candidate(
+                validation=self._make_validation(regime_cv_verdict="FAIL"),
+            ),
         }
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
     def test_low_industrial_sharpe(self):
         candidates = {
-            "s1": {
-                "validation": self._make_validation(industrial_sharpe=-0.1),
-                "alpha": 0.05,
-                "activity": 0.01,
-            },
+            "s1": self._full_candidate(
+                validation=self._make_validation(industrial_sharpe=-0.1),
+            ),
         }
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
     def test_low_dsr(self):
         candidates = {
-            "s1": {
-                "validation": self._make_validation(dsr=0.90),
-                "alpha": 0.05,
-                "activity": 0.01,
-            },
+            "s1": self._full_candidate(
+                validation=self._make_validation(dsr=0.90),
+            ),
         }
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
     def test_fragile_bootstrap(self):
         candidates = {
-            "s1": {
-                "validation": self._make_validation(bootstrap_verdict="FRAGILE"),
-                "alpha": 0.05,
-                "activity": 0.01,
-            },
+            "s1": self._full_candidate(
+                validation=self._make_validation(bootstrap_verdict="FRAGILE"),
+            ),
         }
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
     def test_low_activity(self):
         candidates = {
-            "s1": {
-                "validation": self._make_validation(),
-                "alpha": 0.05,
-                "activity": 0.0001,
-            },
+            "s1": self._full_candidate(activity=0.0001),
         }
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
     def test_negative_alpha(self):
         candidates = {
-            "s1": {
-                "validation": self._make_validation(),
-                "alpha": -0.01,
-                "activity": 0.01,
-            },
+            "s1": self._full_candidate(alpha=-0.01),
         }
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
     def test_no_validation(self):
         candidates = {"s1": {"validation": None, "alpha": 0.05, "activity": 0.01}}
-        assert select_strategies(candidates) == []
+        result = select_strategies(candidates)
+        assert get_passed_strategies(result) == []
 
 
 # ============================================================
@@ -665,3 +682,458 @@ class TestRegimeAllocator:
     def test_unknown_regime(self):
         """Unknown regimes default to 1.0."""
         assert get_position_multiplier("unknown") == 1.0
+
+
+# ============================================================
+# selection v2 tests (SelectionResult-based)
+# ============================================================
+
+
+class TestSelectStrategiesV2:
+    """Tests for the new select_strategies returning dict[str, SelectionResult]."""
+
+    def _make_full_validation(
+        self,
+        regime_cv_verdict="PASS",
+        industrial_sharpe=1.0,
+        decay_pct=0.1,
+        dsr=0.97,
+        bootstrap_verdict="ROBUST",
+        oos_sharpe=1.0,
+        max_drawdown=-0.10,
+    ):
+        return SimpleNamespace(
+            regime_cv=SimpleNamespace(verdict=regime_cv_verdict),
+            industrial=SimpleNamespace(industrial_sharpe=industrial_sharpe, decay_pct=decay_pct),
+            deflated_sharpe=dsr,
+            bootstrap=SimpleNamespace(verdict=bootstrap_verdict),
+            oos_sharpe=oos_sharpe,
+            max_drawdown=max_drawdown,
+        )
+
+    def _passing_candidate(self, **overrides):
+        """Return a candidate dict that passes all hard filters by default."""
+        base = {
+            "validation": self._make_full_validation(),
+            "alpha": 0.05,
+            "activity": 0.01,
+            "n_trades": 50,
+            "freq": "daily",
+            "sharpe_at_2x_cost": 0.5,
+        }
+        base.update(overrides)
+        return base
+
+    def test_all_pass_returns_selection_result(self):
+        candidates = {"s1": self._passing_candidate()}
+        results = select_strategies(candidates)
+        assert isinstance(results, dict)
+        assert "s1" in results
+        r = results["s1"]
+        assert isinstance(r, SelectionResult)
+        assert r.passed is True
+        assert r.strategy == "s1"
+        assert len(r.rejection_reasons) == 0
+
+    def test_oos_sharpe_rejection(self):
+        candidates = {
+            "s1": self._passing_candidate(
+                validation=self._make_full_validation(oos_sharpe=0.3),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("OOS Sharpe" in r for r in results["s1"].rejection_reasons)
+
+    def test_max_drawdown_rejection(self):
+        candidates = {
+            "s1": self._passing_candidate(
+                validation=self._make_full_validation(max_drawdown=-0.35),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("Max DD" in r for r in results["s1"].rejection_reasons)
+
+    def test_industrial_sharpe_minimum(self):
+        candidates = {
+            "s1": self._passing_candidate(
+                validation=self._make_full_validation(industrial_sharpe=0.3),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("Industrial Sharpe" in r for r in results["s1"].rejection_reasons)
+
+    def test_industrial_decay_rejection(self):
+        candidates = {
+            "s1": self._passing_candidate(
+                validation=self._make_full_validation(decay_pct=0.6),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("Industrial decay" in r for r in results["s1"].rejection_reasons)
+
+    def test_2x_cost_rejection(self):
+        candidates = {
+            "s1": self._passing_candidate(sharpe_at_2x_cost=-0.1),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("2x cost" in r for r in results["s1"].rejection_reasons)
+
+    def test_2x_cost_survival(self):
+        candidates = {
+            "s1": self._passing_candidate(sharpe_at_2x_cost=0.3),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is True
+
+    def test_multiple_rejections_recorded(self):
+        candidates = {
+            "s1": self._passing_candidate(
+                validation=self._make_full_validation(
+                    oos_sharpe=0.3,
+                    max_drawdown=-0.35,
+                    industrial_sharpe=0.3,
+                ),
+                sharpe_at_2x_cost=-0.1,
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert len(results["s1"].rejection_reasons) >= 3
+
+    def test_get_passed_strategies(self):
+        candidates = {
+            "s1": self._passing_candidate(),
+            "s2": self._passing_candidate(
+                validation=self._make_full_validation(oos_sharpe=0.1),
+            ),
+            "s3": self._passing_candidate(),
+        }
+        results = select_strategies(candidates)
+        passed = get_passed_strategies(results)
+        assert passed == ["s1", "s3"]
+
+
+# ============================================================
+# confidence grading tests
+# ============================================================
+
+
+class TestConfidenceGrading:
+    """Tests for _grade_confidence and confidence weight caps."""
+
+    def test_daily_high(self):
+        assert _grade_confidence(30, "daily") == Confidence.HIGH
+
+    def test_daily_moderate(self):
+        assert _grade_confidence(15, "daily") == Confidence.MODERATE
+
+    def test_daily_low(self):
+        assert _grade_confidence(5, "daily") == Confidence.LOW
+
+    def test_1h_high(self):
+        assert _grade_confidence(100, "1h") == Confidence.HIGH
+
+    def test_1h_moderate(self):
+        assert _grade_confidence(50, "1h") == Confidence.MODERATE
+
+    def test_1h_low(self):
+        assert _grade_confidence(10, "1h") == Confidence.LOW
+
+    def test_low_confidence_weight_cap(self):
+        from portfolio.selection import CONFIDENCE_WEIGHT_CAP
+        assert CONFIDENCE_WEIGHT_CAP[Confidence.LOW] == 0.15
+
+    def test_high_confidence_weight_cap(self):
+        from portfolio.selection import CONFIDENCE_WEIGHT_CAP
+        assert CONFIDENCE_WEIGHT_CAP[Confidence.HIGH] == 0.25
+
+
+# ============================================================
+# portfolio fit tests
+# ============================================================
+
+
+class TestPortfolioFit:
+    """Tests for check_portfolio_fit."""
+
+    def test_uncorrelated_fits(self):
+        rng = np.random.RandomState(42)
+        candidate = rng.randn(100) * 0.01
+        portfolio = rng.randn(100) * 0.01
+        fits, details = check_portfolio_fit(candidate, portfolio, 1.0, 0.8)
+        assert fits is True
+
+    def test_high_correlation_rejected(self):
+        rng = np.random.RandomState(42)
+        base = rng.randn(100) * 0.01
+        candidate = base + rng.randn(100) * 0.001
+        portfolio = base + rng.randn(100) * 0.001
+        fits, details = check_portfolio_fit(candidate, portfolio, 1.0, 0.8)
+        assert fits is False
+        assert details["correlation"] >= 0.40
+
+    def test_marginal_sharpe_positive(self):
+        """Candidate SR > rho * portfolio SR → fits."""
+        rng = np.random.RandomState(42)
+        candidate = rng.randn(100) * 0.01
+        portfolio = rng.randn(100) * 0.01
+        # Low correlation expected, so marginal threshold is low
+        fits, details = check_portfolio_fit(candidate, portfolio, 2.0, 1.0)
+        assert fits is True
+        assert details["candidate_sharpe"] == 2.0
+
+    def test_marginal_sharpe_negative(self):
+        """Candidate SR < rho * portfolio SR → doesn't fit."""
+        rng = np.random.RandomState(42)
+        base = rng.randn(100) * 0.01
+        # Moderately correlated (~0.3-0.4 range) but candidate SR very low
+        candidate = base * 0.5 + rng.randn(100) * 0.01
+        portfolio = base * 0.5 + rng.randn(100) * 0.01
+        # Use low candidate sharpe and high portfolio sharpe so
+        # candidate_sharpe < rho * portfolio_sharpe
+        fits, details = check_portfolio_fit(
+            candidate, portfolio,
+            candidate_sharpe=0.01,
+            portfolio_sharpe=10.0,
+            max_correlation=1.0,  # disable correlation check
+        )
+        assert fits is False
+
+    def test_insufficient_data(self):
+        """< 20 data points → admitted by default."""
+        candidate = np.array([0.01, -0.01, 0.02])
+        portfolio = np.array([0.01, 0.01, -0.02])
+        fits, details = check_portfolio_fit(candidate, portfolio, 1.0, 0.8)
+        assert fits is True
+        assert "insufficient" in details.get("reason", "")
+
+    def test_details_contain_correlation(self):
+        rng = np.random.RandomState(42)
+        candidate = rng.randn(100) * 0.01
+        portfolio = rng.randn(100) * 0.01
+        _, details = check_portfolio_fit(candidate, portfolio, 1.0, 0.8)
+        assert "correlation" in details
+        assert "marginal_sharpe_threshold" in details
+        assert "candidate_sharpe" in details
+
+
+# ============================================================
+# pairwise correlations tests
+# ============================================================
+
+
+class TestPairwiseCorrelations:
+    """Tests for check_pairwise_correlations."""
+
+    def test_uncorrelated(self):
+        rng = np.random.RandomState(42)
+        returns = rng.randn(200, 3) * 0.01
+        names = ["a", "b", "c"]
+        flags = check_pairwise_correlations(returns, names)
+        # Independent returns → no flags expected
+        for name in names:
+            assert flags[name] == []
+
+    def test_correlated_pair(self):
+        rng = np.random.RandomState(42)
+        base = rng.randn(200) * 0.01
+        s1 = base + rng.randn(200) * 0.001
+        s2 = base + rng.randn(200) * 0.001
+        s3 = rng.randn(200) * 0.01
+        returns = np.column_stack([s1, s2, s3])
+        names = ["a", "b", "c"]
+        flags = check_pairwise_correlations(returns, names)
+        assert "b" in flags["a"]
+        assert "a" in flags["b"]
+        assert flags["c"] == []
+
+    def test_single_strategy(self):
+        rng = np.random.RandomState(42)
+        returns = rng.randn(100, 1) * 0.01
+        flags = check_pairwise_correlations(returns, ["only"])
+        assert flags == {"only": []}
+
+
+# ============================================================
+# clip_and_redistribute with per_strategy_caps tests
+# ============================================================
+
+
+class TestClipWithPerStrategyCaps:
+    """Tests for clip_and_redistribute with per_strategy_caps parameter."""
+
+    def test_per_strategy_caps_applied(self):
+        """Strategy with per-strategy cap gets lower weight than default cap."""
+        # Use enough strategies so cap capacity >= 1.0
+        w = {"a": 0.30, "b": 0.20, "c": 0.15, "d": 0.15, "e": 0.10, "f": 0.10}
+        result = clip_and_redistribute(
+            w, max_weight=0.25, per_strategy_caps={"a": 0.15},
+        )
+        # "a" should be clipped to at most 0.15 (cap capacity is feasible)
+        assert result["a"] <= 0.15 + 1e-9
+        assert sum(result.values()) == pytest.approx(1.0)
+
+    def test_mixed_caps(self):
+        """Some strategies have custom caps, others use default."""
+        w = {"a": 0.30, "b": 0.15, "c": 0.15, "d": 0.15, "e": 0.15, "f": 0.10}
+        caps = {"a": 0.15, "f": 0.10}
+        result = clip_and_redistribute(w, max_weight=0.25, per_strategy_caps=caps)
+        # "a" gets clipped to its custom cap; others use default 0.25
+        assert result["a"] <= 0.15 + 1e-9
+        assert result["f"] <= 0.10 + 1e-9
+        assert sum(result.values()) == pytest.approx(1.0)
+
+    def test_no_caps_backward_compatible(self):
+        """None caps → same as before."""
+        w = {"a": 0.6, "b": 0.2, "c": 0.2}
+        result_no_caps = clip_and_redistribute(w, max_weight=0.4, per_strategy_caps=None)
+        result_default = clip_and_redistribute(w, max_weight=0.4)
+        assert result_no_caps == result_default
+
+
+# ============================================================
+# absolute return filter tests
+# ============================================================
+
+
+class TestAbsoluteReturnFilters:
+    """Tests for annualized_return, profit_factor, and max_single_trade_pct filters."""
+
+    def _make_v3_validation(
+        self,
+        regime_cv_verdict="PASS",
+        industrial_sharpe=1.0,
+        decay_pct=0.1,
+        dsr=0.97,
+        bootstrap_verdict="ROBUST",
+        oos_sharpe=1.0,
+        max_drawdown=-0.10,
+        annualized_return=0.15,
+        profit_factor=1.8,
+        max_single_trade_pct=0.10,
+    ):
+        return SimpleNamespace(
+            regime_cv=SimpleNamespace(verdict=regime_cv_verdict),
+            industrial=SimpleNamespace(industrial_sharpe=industrial_sharpe, decay_pct=decay_pct),
+            deflated_sharpe=dsr,
+            bootstrap=SimpleNamespace(verdict=bootstrap_verdict),
+            oos_sharpe=oos_sharpe,
+            max_drawdown=max_drawdown,
+            annualized_return=annualized_return,
+            profit_factor=profit_factor,
+            max_single_trade_pct=max_single_trade_pct,
+        )
+
+    def _v3_candidate(self, **overrides):
+        base = {
+            "validation": self._make_v3_validation(),
+            "alpha": 0.05,
+            "activity": 0.01,
+            "n_trades": 50,
+            "freq": "daily",
+            "sharpe_at_2x_cost": 0.5,
+        }
+        base.update(overrides)
+        return base
+
+    def test_negative_return_rejected(self):
+        """Negative annualized return must be rejected."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(annualized_return=-0.05),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("negative return" in r.lower() for r in results["s1"].rejection_reasons)
+
+    def test_zero_return_rejected(self):
+        """Zero annualized return must be rejected."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(annualized_return=0.0),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+
+    def test_positive_return_passes(self):
+        """Positive annualized return passes (with other conditions met)."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(annualized_return=0.15),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is True
+
+    def test_low_profit_factor_rejected(self):
+        """Profit factor below 1.3 threshold must be rejected."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(profit_factor=1.1),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("Profit Factor" in r for r in results["s1"].rejection_reasons)
+
+    def test_profit_factor_passes(self):
+        """Profit factor above threshold passes."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(profit_factor=1.8),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is True
+
+    def test_high_single_trade_rejected(self):
+        """Single trade > 30% of total P&L must be rejected."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(max_single_trade_pct=0.45),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is False
+        assert any("single trade" in r.lower() for r in results["s1"].rejection_reasons)
+
+    def test_single_trade_passes(self):
+        """Single trade within threshold passes."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(max_single_trade_pct=0.15),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is True
+
+    def test_high_sharpe_low_return_warning(self):
+        """High Sharpe but low return passes with a warning."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(oos_sharpe=2.0, annualized_return=0.02),
+            ),
+        }
+        results = select_strategies(candidates)
+        # annualized_return=0.02 > 0, so it passes the hard filter
+        assert results["s1"].passed is True
+        # But should have a warning about high Sharpe + low return
+        assert any("low return" in w.lower() for w in results["s1"].warnings)
+
+    def test_moderate_sharpe_high_return_passes(self):
+        """Moderate Sharpe with high return passes — this is the case Simon wants."""
+        candidates = {
+            "s1": self._v3_candidate(
+                validation=self._make_v3_validation(oos_sharpe=0.6, annualized_return=0.25),
+            ),
+        }
+        results = select_strategies(candidates)
+        assert results["s1"].passed is True
+        assert len(results["s1"].rejection_reasons) == 0

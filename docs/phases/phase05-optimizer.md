@@ -1,5 +1,7 @@
 # Phase 5: 优化器
 
+> **注意：** 目录结构已更新。策略现按 regime/direction/instrument/timeframe 组织。详见 [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md)
+
 **目标：** 在标注的 regime 时段上优化策略参数，5 维复合目标函数，两阶段 Optuna。
 
 **依赖：** Phase 4（策略代码可运行）
@@ -34,6 +36,8 @@ score = (0.40 * S_performance
 ### 维度 1: S_performance (40%) — 风险调整收益
 
 ```python
+S_performance = 0.6 × sharpe_score + 0.4 × return_score
+
 # 粗调: tanh 压缩（防追极端 Sharpe）
 S_performance_coarse = 10 * tanh(0.7 * sharpe)
 
@@ -79,6 +83,7 @@ S_alpha = max(0, min(10, alpha_sharpe * 10 / 1.0))    # alpha > 1.0: 满分
 | 条件 | 动作 |
 |------|------|
 | 交易次数 < 频率门槛 (daily≥10, 4h≥20, 1h≥30) | 返回 -10 |
+| annualized_return <= 0 | 返回 -5 |
 | S_alpha ≤ 0 | 返回 -5 |
 
 ---
@@ -95,7 +100,7 @@ Phase 1: 粗调 (Coarse)
 Phase 2: 精调 (Fine)
   50 trials, 围绕粗调最优 ±15%
   S_performance 用 linear
-  1h+ 策略必须 Industrial 模式
+  精调阶段(Phase 2)所有频率均使用 Industrial 模式（真实成本），确保优化出的参数在实际交易中有效
 
 Phase 3: 稳健性验证
   ±15% 邻域采样, max(20, n_params*5) 个样本
@@ -143,6 +148,8 @@ trials:
     symbol: "RB"
     freq: "1h"
     sharpe: 1.45
+    annualized_return: 0.12
+    profit_factor: 1.45
     score: 7.2
     n_trades: 87
     status: "active"

@@ -1,0 +1,31 @@
+hard_reject: false
+reject_reasons: []
+soft_flags:
+- oos_behavior_anomaly
+- bootstrap_acceptable
+- permutation_not_significant
+oos_full_span:
+  start: '2021-09-19'
+  end: '2023-05-12'
+  total_return: 0.09885827250000001
+  annualized_return: 0.05230137301474613
+  sharpe: 0.5844522619540138
+  n_trades: 91
+  max_drawdown: 0.08061716510312178
+  profit_factor: 1.1546090898349355
+  max_single_trade_pct: 0.0
+oos_period_breakdown:
+- period: 2021-11-18 → 2022-06-02
+  total_return: 0.007584488
+  sharpe: 0.21649650313017868
+  n_trades: 17
+- period: 2022-07-15 → 2023-03-13
+  total_return: 0.1427050759999997
+  sharpe: 1.8627647299520211
+  n_trades: 17
+period_concentration_warning: true
+oos_sharpe: 0.5844522619540138
+industrial_oos_sharpe: 1.130339759513105
+is_sharpe: 0.9399002344523278
+n_trades_oos: 91
+dsr: 1.0

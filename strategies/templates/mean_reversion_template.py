@@ -17,3 +17,4 @@ class MeanReversionStrategy(QBaseStrategy):
 
     regime = "mean_reversion"
     horizon = None
+    direction = "both"  # MR strategies are always bidirectional

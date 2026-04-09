@@ -18,7 +18,33 @@ Layer 2: Regime Allocation（跨 Regime）
 
 ---
 
-## Layer 1: Signal Blender
+## Layer 1: Signal Blender（Carver 标准 Forecast Combination Pipeline）
+
+策略输出原始信号 [-1, +1]，Signal Blender 通过 Carver/Man AHL 标准 forecast combination pipeline 合并为单一 forecast [-20, +20]。
+
+### Forecast Combination Pipeline（6 步）
+
+```
+Step 1: Forecast Scaling  — signal × forecast_scalar → avg|forecast| = 10
+Step 2: Forecast Capping  — clip 到 ±20
+Step 3: Weighted Combination — 加权合并（NaN 策略自动剔除，权重重新归一化）
+Step 4: FDM               — combined × FDM，补偿分散化损失
+Step 5: Coverage Scaling  — 有信号策略 < 25% 时按覆盖率缩放
+Step 6: Re-cap            — 再次 clip 到 ±20
+```
+
+**FDM (Forecast Diversification Multiplier):**
+```
+FDM = 1 / sqrt(w' × C × w)    # w = 权重向量，C = forecast 相关性矩阵
+FDM = min(FDM, 2.5)           # 上限 2.5
+```
+
+### 多频率处理
+
+Signal Blender 在 **1H 频率**上运行：
+- 1H 策略：直接使用当前 bar 信号
+- Daily 策略：信号 forward-fill 到 1H 网格
+- 合并后的 forecast 在 1H 粒度上更新
 
 ### 3 阶段渐进权重
 
@@ -48,13 +74,14 @@ w = clip_and_redistribute(w, max_weight=0.25)
 MIN_HORIZON_WEIGHT = 0.15
 ```
 
-### Signal Blending 输出
+### Forecast → Position Sizing
 
 ```python
-net_signal = sum(w[v] * signal[v] for v in active_strategies)
-net_signal = directional_filter(net_signal, fundamental_view)
-position = vol_targeting(net_signal, target_vol, realized_vol)
-position = clip(position, max_position_by_margin)
+forecast = pipeline_output                                    # [-20, +20]
+forecast = directional_filter(forecast, fundamental_view)
+lots = (forecast / 10) * (capital * target_vol) / (price * multiplier * ann_vol)
+lots = buffer_zone(lots, current_lots, buffer=0.10)           # 10% position inertia
+lots = clip(lots, max_position_by_margin)
 ```
 
 ---
@@ -145,6 +172,34 @@ portfolio/
 ├── retirement.py          # 策略退役检测
 └── report.py              # Portfolio 报告
 ```
+
+---
+
+## 当前实现结果
+
+> **2026-04-01** — Portfolio 构建完成。
+>
+> **当前组合：** daily_v27 + 1h_v18
+> - **Sharpe = 1.979**
+> - **Return = +64.64%**
+> - **MaxDD = 6.36%**
+> - **Calmar = 4.314**
+> - 策略间 return correlation = 0.099
+>
+> **Selection：** 使用 return correlation（threshold < 0.5），不使用 forecast correlation。
+>
+> **Signal Blending Report：** 使用 AlphaForge `generate_signal_blend_report()` 生成，包含：
+> - `portfolio.html` — 主报告（净信号权益曲线 + 各策略叠加对比 + 信号分解 + 相关性矩阵）
+> - 各策略独立报告链接（strategy_links 参数传入）
+>
+> **报告结构：**
+> ```
+> reports/
+> ├── portfolio.html                    # Signal Blending 主报告
+> └── strong_trend/long/iron/
+>     ├── daily/v27/oos.html           # 策略独立报告
+>     └── 1h/v18/oos.html             # 策略独立报告
+> ```
 
 ---
 

@@ -11,7 +11,7 @@
 ## 数据流
 
 ```
-基本面团队                    历史数据 (AlphaForge V6.0)
+基本面团队                    历史数据 (AlphaForge V7.2)
     │                              │
     ▼                              ▼
 Regime 预判               Regime 历史标注
@@ -25,9 +25,8 @@ Regime 预判               Regime 历史标注
     └──────────┬──────────┘
                │
     ┌──────────▼──────────┐
-    │   Strategy Pool      │  按 regime × horizon 组织
+    │   Strategy Pool      │  按 regime × direction 组织
     │   4 信号维度          │  Momentum / Carry / Volume / Technical
-    │   3 trend horizons   │  Fast / Medium / Slow
     │   4 周期同步          │  1h / 2h / 4h / daily
     └──────────┬──────────┘
                │
@@ -45,7 +44,7 @@ Regime 预判               Regime 历史标注
     └──────────┬──────────┘
                │
     ┌──────────▼──────────┐
-    │   Execution          │  AlphaForge V6.0 Industrial
+    │   Execution          │  AlphaForge V7.2 Industrial
     └─────────────────────┘
 ```
 
@@ -69,8 +68,10 @@ risk/ ────────┼── risk/chandelier (Phase 3)       ││
               │                                   ││
 strategies/ ──┼── templates/ (Phase 4)          ◄─┘│
               │   baselines/                    ◄──┘
-              │   trending/{fast,medium,slow}/
+              │   mild_trend/                      # I strategies (long 150 + short 40)
+              │   strong_trend/                    # AG strategies (long 40 + short 40)
               │   mean_reversion/
+              │   crisis/
               │
 optimizer/ ───┼── core, two_phase (Phase 5)
               │   regime_optimizer
@@ -92,7 +93,15 @@ monitoring/ ──┼── decay_detector (Phase 11)
               │   regime_alert
               │   retirement
               │
-pipeline/ ────── runner, cli (Phase 10)
+pipeline/ ────── dev_pipeline (854 lines, 主流程)
+              │   qbase_config.py (统一配置中心)
+              │   utils.py (helper 函数)
+              │   runner, cli (Phase 10)
+              │
+reporting/ ───── indicator_panels (via base_strategy + backtest_runner)
+              │   base_strategy.py 新增 get_indicator_panels() + 辅助方法
+              │   backtest_runner.py 新增 _inject_indicator_panels() 自动打包
+              │   数据流: 策略 → get_indicator_panels → result.metadata → AlphaForge HTMLReportGenerator → Plotly 多 panel 图表
 ```
 
 ---
@@ -135,7 +144,7 @@ pipeline/ ────── runner, cli (Phase 10)
 
 **决策：** 记录每一次优化试验，用 Deflated Sharpe Ratio 校正选择偏差。
 
-**理由：** López de Prado (AQR) 的标准方法。测试 200 个策略选最好的 10 个，如果不校正，最好的那个可能只是噪音。
+**理由：** Lopez de Prado (AQR) 的标准方法。测试 200 个策略选最好的 10 个，如果不校正，最好的那个可能只是噪音。
 
 ---
 
@@ -144,7 +153,7 @@ pipeline/ ────── runner, cli (Phase 10)
 | 组件 | 技术 |
 |------|------|
 | 语言 | Python |
-| 回测引擎 | AlphaForge V6.0 (1505 tests, 95 品种, Industrial 模式) |
+| 回测引擎 | AlphaForge V7.2 (1505 tests, 95 品种, Industrial 模式) |
 | 指标计算 | numpy + numba @njit |
 | 优化 | Optuna TPE |
 | 协方差估计 | Ledoit-Wolf (sklearn) |
@@ -160,5 +169,5 @@ pipeline/ ────── runner, cli (Phase 10)
 - **不做跨品种套利** — 但可用同板块品种辅助 Regime CV 训练
 - **不做日内交易** — 最短周期 1h
 - **切换频率周/月级** — 不做日级 regime 切换
-- **策略参数 ≤ 5 个** — 防过拟合
-- **Portfolio 上线标准 ≥ B+ (75分)** — 5 维 15 指标评分
+- **策略参数 <= 5 个** — 防过拟合
+- **Portfolio 上线标准 >= B+ (75分)** — 5 维 15 指标评分

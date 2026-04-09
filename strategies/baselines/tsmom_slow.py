@@ -26,6 +26,7 @@ class TSMOMSlow(TrendingStrategy):
 
     name = "tsmom_slow"
     horizon = "slow"
+    direction = "both"
     signal_dimensions = ["momentum"]
     warmup: int = 255
 

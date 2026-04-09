@@ -18,6 +18,7 @@ from optimizer.core import (
     _score_alpha,
     _score_consistency,
     _score_performance,
+    _score_return,
     _score_risk,
     _score_significance,
     composite_objective,
@@ -34,14 +35,17 @@ from optimizer.trial_registry import TrialRegistry
 
 def _make_metrics(
     sharpe: float = 1.5,
+    annualized_return: float = 0.15,
     max_drawdown: float = 0.10,
     cvar_95: float = -0.01,
     n_trades: int = 50,
     win_rate: float = 0.6,
+    profit_factor: float = 1.8,
     skewness: float = 0.0,
     kurtosis: float = 3.0,
     n_days: int = 250,
     equity_start: float = 100.0,
+    max_single_trade_pct: float = 0.0,
 ) -> BacktestMetrics:
     """Create BacktestMetrics with sensible defaults."""
     rng = np.random.RandomState(42)
@@ -49,14 +53,17 @@ def _make_metrics(
     equity = equity_start * np.cumprod(1 + daily)
     return BacktestMetrics(
         sharpe=sharpe,
+        annualized_return=annualized_return,
         max_drawdown=max_drawdown,
         cvar_95=cvar_95,
         n_trades=n_trades,
         win_rate=win_rate,
+        profit_factor=profit_factor,
         skewness=skewness,
         kurtosis=kurtosis,
         daily_returns=daily,
         equity_curve=equity,
+        max_single_trade_pct=max_single_trade_pct,
     )
 
 
@@ -147,20 +154,22 @@ class TestScorePerformance:
     """Test performance scoring dimension."""
 
     def test_coarse_tanh_compression(self):
-        # tanh(0.7 * 3) ≈ 0.97 → ~9.7
-        s = _score_performance(3.0, "coarse")
-        assert 9.0 < s <= 10.0
+        # tanh(0.7 * 3) ≈ 0.97 → sharpe_score ~9.7, blended with return_score
+        s = _score_performance(3.0, 0.20, "coarse")
+        assert s > 7.0
 
     def test_coarse_negative_sharpe(self):
-        s = _score_performance(-1.0, "coarse")
+        s = _score_performance(-1.0, 0.0, "coarse")
         assert s < 0
 
     def test_fine_linear(self):
-        s = _score_performance(1.5, "fine")
-        assert abs(s - 5.0) < 0.01  # 1.5 * 10/3 = 5.0
+        # sharpe_score = 1.5 * 10/3 = 5.0, return_score(0.10) = 5.0
+        # blended = 0.6*5.0 + 0.4*5.0 = 5.0
+        s = _score_performance(1.5, 0.10, "fine")
+        assert abs(s - 5.0) < 0.01
 
     def test_fine_capped_at_10(self):
-        s = _score_performance(5.0, "fine")
+        s = _score_performance(5.0, 0.60, "fine")
         assert s == 10.0
 
 
@@ -612,7 +621,7 @@ class TestCompositeEdgeCases:
         assert composite_objective(m, freq="30min") == -10.0
 
     def test_very_high_sharpe_capped(self):
-        s = _score_performance(10.0, "fine")
+        s = _score_performance(10.0, 0.60, "fine")
         assert s == 10.0
 
     def test_negative_sharpe_coarse(self):
@@ -629,3 +638,55 @@ class TestCompositeEdgeCases:
         s = _score_risk(0.0, 0.0)
         # maxdd=0 → 10, cvar=0 → 10*(1+0)=10
         assert s == pytest.approx(10.0)
+
+
+# ======================================================================
+# _score_return
+# ======================================================================
+
+
+class TestScoreReturn:
+    """Test absolute return scoring on 0-10 scale."""
+
+    def test_zero_return(self):
+        assert _score_return(0.0) == 0.0
+
+    def test_five_percent(self):
+        assert _score_return(0.05) == 3.0
+
+    def test_twenty_percent(self):
+        assert _score_return(0.20) == 7.0
+
+    def test_high_return(self):
+        assert _score_return(0.60) == 10.0
+
+    def test_negative_return(self):
+        assert _score_return(-0.10) == 0.0
+
+
+# ======================================================================
+# Performance scoring with return component
+# ======================================================================
+
+
+class TestPerformanceWithReturn:
+    """Test that performance scoring incorporates absolute return."""
+
+    def test_high_sharpe_low_return(self):
+        """High Sharpe but near-zero return gets lower score than high return version."""
+        score_low_ret = _score_performance(2.0, 0.01, "fine")
+        score_high_ret = _score_performance(2.0, 0.30, "fine")
+        assert score_low_ret < score_high_ret
+
+    def test_low_sharpe_high_return(self):
+        """Low Sharpe but high return still gets reasonable score due to return component."""
+        score = _score_performance(0.5, 0.30, "fine")
+        # sharpe_score = 0.5*10/3 ≈ 1.67, return_score(0.30) ≈ 8.0
+        # blended = 0.6*1.67 + 0.4*8.0 = 1.0 + 3.2 = 4.2
+        assert score > 3.0
+
+    def test_negative_return_hard_filter(self):
+        """Metrics with negative annualized return → composite_objective returns -5.0."""
+        m = _make_metrics(sharpe=1.5, annualized_return=-0.05, n_trades=50)
+        score = composite_objective(m, baseline_sharpe=0.0, freq="1h")
+        assert score == -5.0

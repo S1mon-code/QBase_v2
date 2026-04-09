@@ -1,0 +1,62 @@
+# Iron Ore Long Portfolio — Strategy Selection Criteria
+# This file defines the standards for selecting strategies into the portfolio.
+
+# ── Admission (13 hard filters, must ALL pass to enter candidate pool) ──
+admission:
+  min_oos_sharpe: 0.5
+  min_industrial_sharpe: 0.5
+  max_industrial_decay: 0.50
+  max_drawdown: -0.25
+  min_dsr: 0.95
+  bootstrap_not_fragile: true
+  regime_cv_not_fail: true
+  min_independent_alpha: 0.0
+  min_activity: 0.001
+  cost_2x_survival: true
+  min_profit_factor: 1.3
+  max_single_trade_pct: 0.30
+  min_annualized_return: 0.0
+
+# ── Selection (from candidate pool into portfolio) ──
+selection:
+  # Hard requirements
+  min_oos_return: 0.05           # > 5% total return
+  min_oos_sharpe: 1.0            # Sharpe >= 1.0
+  both_periods_profitable: true  # must be profitable in BOTH OOS periods
+  max_period_concentration: 0.70 # single period < 70% of total return
+  max_correlation: 0.50          # RETURN correlation with existing portfolio < 0.5 (not forecast correlation)
+
+  # Dynamic requirements (must improve portfolio)
+  must_improve_return: true      # adding strategy must increase portfolio return
+  max_dd_increase: 0.03          # adding strategy must not increase MaxDD by > 3%
+
+  # Caps
+  max_strategies: 8
+  max_daily: 5
+  max_1h: 3
+  no_duplicate_indicators: true  # no two strategies with same indicator combination
+
+# ── Preferences (used to rank when multiple candidates qualify) ──
+preferences:
+  prefer_different_indicators: true
+  prefer_both_timeframes: true   # at least 1 daily + 1 1h
+  prefer_high_independent_alpha: true  # > 20%
+  prefer_low_industrial_decay: true    # < 20%
+
+# ── Signal Blending ──
+blending:
+  method: carver_standard
+  forecast_target_abs: 10
+  forecast_cap: 20
+  fdm_cap: 2.5
+  daily_risk_share: 0.70
+  hourly_risk_share: 0.30
+  max_margin_util: 0.80
+  vol_cap_ratio: 1.5             # portfolio vol cap at 1.5x target
+
+# ── Correlation Monitoring ──
+correlation_monitor:
+  lookback: 60
+  warning_threshold: 0.70
+  crisis_threshold: 0.85
+  crisis_position_scale: 0.50

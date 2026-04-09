@@ -1,0 +1,105 @@
+# Iron Ore Long Portfolio — Final Configuration
+# Generated: 2026-04-01
+# Selection method: greedy forward, return correlation < 0.5
+
+instrument: I
+direction: long
+regime: strong_trend
+initial_capital: 10000000
+target_vol: 0.15
+max_margin_util: 0.80
+
+result:
+  sharpe: 1.979
+  total_return: 0.6464
+  max_drawdown: 0.0636
+  calmar: 4.314
+  n_trades: 8
+
+components:
+  - key: daily_v27
+    freq: daily
+    risk_share: 0.70
+    sizing_mode: continuous
+    module: strategies.strong_trend.long.I.daily.trend_medium_v27
+    forecast_scalar: 23.0
+    individual_sharpe: 0.955
+    individual_return: 0.2772
+
+  - key: 1h_v18
+    freq: 1h
+    risk_share: 0.30
+    sizing_mode: fixed_entry
+    module: strategies.strong_trend.long.I.1h.v18
+    forecast_scalar: 50.7
+    individual_sharpe: 1.241
+    individual_return: 0.6036
+
+selection:
+  method: greedy_forward_return_max
+  correlation_type: return_correlation
+  max_correlation: 0.50
+  actual_correlation: 0.099
+
+blending:
+  method: carver_standard
+  forecast_target_abs: 10
+  forecast_cap: 20
+
+risk:
+  vol_cap_ratio: 1.5
+  correlation_warning: 0.70
+  correlation_crisis: 0.85
+
+# === PythonGo Engine Implementation Guide ===
+# To implement this portfolio in live trading, read these files:
+
+implementation_files:
+  # 1. Core blending logic (MUST READ)
+  signal_blender: portfolio/signal_blender.py
+  # Contains: compute_forecast_scalar, scale_and_cap, blend_forecasts,
+  # apply_direction_filter, forecast_to_position, portfolio_vol_cap,
+  # monitor_correlation_regime
+
+  # 2. Reference execution script (MUST READ)
+  execution_reference: scripts/run_iron_portfolio.py
+  # Contains: complete end-to-end flow — load data, generate signals per
+  # strategy at native frequency, resample to 1H grid, blend, size,
+  # combine daily+1h components, vol cap, run backtest
+
+  # 3. Strategy code (MUST READ)
+  daily_strategy: strategies/strong_trend/long/I/daily/trend_medium_v27.py
+  hourly_strategy: strategies/strong_trend/long/I/1h/v18.py
+  base_class: strategies/templates/base_strategy.py
+  trending_template: strategies/templates/trending_template.py
+
+  # 4. Optimized parameters (MUST READ)
+  daily_params: research/strong_trend/long/I/daily/v27_+27.72%/params.yaml
+  hourly_params: research/strong_trend/long/I/1h/v18_+60.36%/params.yaml
+
+  # 5. Regime labels — active periods mask (MUST READ)
+  regime_labels: data/regime_labels/I.yaml
+  # Only trade during UP regime periods, zero signal outside
+
+  # 6. Indicator library (strategies import from here)
+  indicators: indicators/
+
+  # 7. Position sizing adapter (reference for sizing logic)
+  backtest_runner: pipeline/backtest_runner.py
+  # Contains: _SignalAdapter with daily continuous vs 1h fixed entry
+
+  # 8. Selection criteria (reference)
+  selection_criteria: portfolio/strong_trend/long/I/selection_criteria.yaml
+
+  # 9. This config file
+  config: portfolio/strong_trend/long/I/config.yaml
+
+# === Key Implementation Notes ===
+# 1. Each strategy runs at its NATIVE frequency (daily bars / 1h bars)
+# 2. Daily signal forward-fills to 1H grid (constant between daily closes)
+# 3. Total position = daily_lots + hourly_lots (additive)
+# 4. Daily component: rebalance when daily signal changes (once/day)
+# 5. 1H component: enter on signal, hold until signal flips to zero
+# 6. Signal execution: next bar's open price (1-bar delay)
+# 7. Vol cap: if portfolio vol > 1.5x target, scale down positions
+# 8. Margin cap: total margin < 80% of capital

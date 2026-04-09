@@ -1,5 +1,7 @@
 # Phase 4: 策略模板 + 第一批策略
 
+> **注意：** 目录结构已更新。策略现按 regime/direction/instrument/timeframe 组织。详见 [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md)
+
 **目标：** 定义信号接口，建立 TSMOM Baseline，在 RB 全周期（1h/2h/4h/daily）上同步开发策略。
 
 **依赖：** Phase 2（regime 标注 + 训练数据）, Phase 3（风控模块）
@@ -50,6 +52,8 @@ class BaseStrategy(TimeSeriesStrategy):
     # - 下单执行
 ```
 
+**仓位管理：** 策略只负责产生 [-1, +1] 信号。仓位管理由外层 SignalAdapter 处理：vol-targeting + 10% 缓冲区连续调仓。
+
 ---
 
 ## TSMOM Baselines（第一步，在任何策略之前建立）
@@ -96,7 +100,8 @@ class TSMOMFast(BaseStrategy):
 | 指标 | 最低要求 |
 |------|---------|
 | 交易次数 | ≥ 30（1h 频率） |
-| Profit Factor | ≥ 1.05 |
+| Profit Factor | ≥ 1.2 |
+| 年化收益 | > 0 |
 | 权益曲线 | 大致向上 |
 
 不通过 → 微调或丢弃。

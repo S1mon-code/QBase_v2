@@ -1,8 +1,8 @@
 # QBase_v2 Global Settings
 
 # AlphaForge paths
-alphaforge_path: "/Users/simon/Desktop/alphaforge"
-data_dir: "/Users/simon/Desktop/alphaforge/data"
+alphaforge_path: "/Users/simon/Desktop/AlphaForge"
+data_dir: "/Users/simon/Desktop/AlphaForge/data"
 
 # Capital & risk
 initial_capital: 10_000_000

@@ -15,23 +15,14 @@ Usage:
 
 from __future__ import annotations
 
-import sys
 import logging
-from pathlib import Path
+import shutil
 from typing import Any
 
 import numpy as np
-import yaml
 
-# ── Paths ──────────────────────────────────────────────────────────────────────
-_AF_PATH = "/Users/simon/Desktop/AlphaForge"
-_QB_PATH = "/Users/simon/Desktop/QBase_v2"
-
-for _p in (_AF_PATH, _QB_PATH):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# ── Paths (from centralized config) ──────────────────────────────────────────
+from pipeline.qbase_config import ALPHAFORGE_PATH, PROJECT_ROOT
 
 # Suppress noisy loggers
 logging.getLogger("optuna").setLevel(logging.WARNING)
@@ -42,7 +33,22 @@ from alphaforge.report import HTMLReportGenerator
 
 # ── QBase imports ──────────────────────────────────────────────────────────────
 from pipeline.backtest_runner import run_qbase_backtest
-from regime.schema import load_labels
+from pipeline.utils import (
+    _DIR_MAP,
+    _HORIZON_BASELINE,
+    _concat_daily_returns,
+    _filter_labels,
+    _generate_html_report,
+    _get_trade_regimes,
+    _load_bars_for_labels,
+    _load_regime_labels,
+    _profit_factor,
+    _run_on_labels,
+    _save_yaml,
+    _total_bars,
+    _total_n_trades,
+    _weighted_mean_sharpe,
+)
 from strategies.baselines.tsmom_fast import TSMOMFast
 from strategies.baselines.tsmom_medium import TSMOMMedium
 from strategies.baselines.tsmom_slow import TSMOMSlow
@@ -62,201 +68,6 @@ from attribution.baseline import decompose_baseline
 from attribution.regime import regime_attribution
 from attribution.operational import operational_attribution
 from attribution.report import generate_attribution_report
-
-
-# ── Direction mapping ──────────────────────────────────────────────────────────
-# Regime labels use "up"/"down"; pipeline API uses "long"/"short"
-_DIR_MAP = {"long": "up", "short": "down"}
-
-_HORIZON_BASELINE = {
-    "fast": TSMOMFast,
-    "medium": TSMOMMedium,
-    "slow": TSMOMSlow,
-}
-
-# ── Internal helpers ───────────────────────────────────────────────────────────
-
-
-def _load_regime_labels(symbol: str):
-    """Load RegimeConfig for a symbol from data/regime_labels/{symbol}.yaml."""
-    label_path = _PROJECT_ROOT / "data" / "regime_labels" / f"{symbol}.yaml"
-    return load_labels(label_path)
-
-
-def _filter_labels(regime_config, split: str, direction_api: str, regime: str | None = None):
-    """Return filtered list of RegimeLabel.
-
-    Args:
-        regime_config: RegimeConfig loaded from YAML.
-        split:         "train", "oos", or "holdout".
-        direction_api: "long" or "short" (converted to "up"/"down" internally).
-        regime:        Regime name to filter on. None = all regimes.
-    """
-    af_direction = _DIR_MAP.get(direction_api, direction_api)
-    results = []
-    for lbl in regime_config.labels:
-        if lbl.split != split:
-            continue
-        if lbl.direction != af_direction:
-            continue
-        if regime is not None and lbl.regime != regime:
-            continue
-        results.append(lbl)
-    return results
-
-
-def _run_on_labels(strategy_class, params, symbol, labels, freq, industrial=False,
-                   config_overrides=None):
-    """Run backtest on each RegimeLabel period; return list of results."""
-    results = []
-    for lbl in labels:
-        try:
-            r = run_qbase_backtest(
-                strategy_class, params, symbol, freq,
-                start=str(lbl.start), end=str(lbl.end),
-                industrial=industrial,
-                config_overrides=config_overrides,
-            )
-            results.append(r)
-        except Exception as e:
-            print(f"  [skip] {lbl.start}→{lbl.end}: {e}")
-    return results
-
-
-def _weighted_mean_sharpe(results) -> float:
-    """Return period-length-weighted mean Sharpe across results."""
-    if not results:
-        return 0.0
-    sharpes = []
-    weights = []
-    for r in results:
-        dr = r.daily_returns
-        if hasattr(dr, "values"):
-            dr = dr.values
-        n = len(dr)
-        if n > 0:
-            sharpes.append(r.sharpe)
-            weights.append(n)
-    if not sharpes:
-        return 0.0
-    total = sum(weights)
-    return float(sum(s * w for s, w in zip(sharpes, weights)) / total)
-
-
-def _concat_daily_returns(results) -> np.ndarray:
-    """Concatenate daily returns arrays from a list of BacktestResult."""
-    arrays = []
-    for r in results:
-        dr = r.daily_returns
-        if hasattr(dr, "values"):
-            dr = dr.values
-        dr = np.asarray(dr, dtype=np.float64)
-        if len(dr) > 0:
-            arrays.append(dr)
-    if not arrays:
-        return np.array([], dtype=np.float64)
-    return np.concatenate(arrays)
-
-
-def _total_n_trades(results) -> int:
-    return sum(getattr(r, "n_trades", 0) for r in results)
-
-
-def _total_bars(results) -> int:
-    total = 0
-    for r in results:
-        dr = r.daily_returns
-        if hasattr(dr, "values"):
-            dr = dr.values
-        total += len(dr)
-    return total
-
-
-def _profit_factor(results) -> float:
-    """Compute profit factor from BacktestResult.profit_factor across all results."""
-    pf_vals = []
-    for r in results:
-        pf = getattr(r, "profit_factor", None)
-        if pf is not None and pf > 0:
-            pf_vals.append(pf)
-    if not pf_vals:
-        return 0.0
-    return float(np.mean(pf_vals))
-
-
-def _save_yaml(data: dict, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
-
-
-def _load_bars_for_labels(symbol: str, labels: list, freq: str):
-    """Load BarArray spanning all given regime label periods.
-
-    Returns dict {symbol: BarArray} suitable for HTMLReportGenerator bar_data,
-    or None on failure. Always pass bar_data to reports so K-line charts render.
-    """
-    if not labels:
-        return None
-    try:
-        from alphaforge.data.market import MarketDataLoader
-        loader = MarketDataLoader(f"{_AF_PATH}/data/")
-        start = str(min(lbl.start for lbl in labels))
-        end   = str(max(lbl.end   for lbl in labels))
-        bars = loader.load(symbol, freq=freq, start=start, end=end)
-        return {symbol: bars}
-    except Exception as e:
-        print(f"  [report] bar_data load failed ({e}); K-line will be omitted")
-        return None
-
-
-def _generate_html_report(result, path: Path, bar_data=None, freq: str = "daily") -> None:
-    """Generate single-strategy HTML report with K-line chart.
-
-    bar_data must be passed as {symbol: BarArray} — without it the K-line chart
-    is blank. Use _load_bars_for_labels() to build bar_data before calling this.
-    """
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        reporter = HTMLReportGenerator()
-        reporter.generate(result, str(path), bar_data=bar_data, freq=freq)
-    except Exception as e:
-        print(f"  [report] HTML generation skipped: {e}")
-
-
-def _get_trade_regimes(result, labels) -> tuple[np.ndarray, np.ndarray]:
-    """Tag each trade in result.trades with its regime label."""
-    try:
-        trades = result.trades
-        if trades is None or len(trades) == 0:
-            return np.array([]), np.array([])
-
-        import pandas as pd
-
-        # Get trade entry dates
-        if "entry_time" in trades.columns:
-            entry_times = pd.to_datetime(trades["entry_time"])
-        elif "date" in trades.columns:
-            entry_times = pd.to_datetime(trades["date"])
-        else:
-            return np.array([]), np.array([])
-
-        pnls = trades["net_pnl"].values if hasattr(trades["net_pnl"], "values") else np.asarray(trades["net_pnl"])
-
-        regime_tags = []
-        for et in entry_times:
-            tag = "unknown"
-            for lbl in labels:
-                start = pd.Timestamp(lbl.start)
-                end = pd.Timestamp(lbl.end)
-                if start <= et <= end:
-                    tag = lbl.regime
-                    break
-            regime_tags.append(tag)
-
-        return np.asarray(pnls), np.asarray(regime_tags)
-    except Exception:
-        return np.array([]), np.array([])
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
@@ -303,7 +114,7 @@ def run_baselines(
         # Save HTML report (use last result for single report, or best available)
         if results:
             report_dir = (
-                _PROJECT_ROOT / "research" / symbol / direction / "baselines"
+                PROJECT_ROOT / "research" / symbol / direction / "baselines"
             )
             report_dir.mkdir(parents=True, exist_ok=True)
             report_path = report_dir / f"{horizon}.html"
@@ -365,9 +176,9 @@ def run_single_strategy_pipeline(
     # Output directory — temp dir first, renamed with OOS return after report generation
     # Format: research/{regime}/{direction}/{instrument}/{timeframe}/v{N}_{+/-}{return}%
     if regime == "mean_reversion":
-        _research_base = _PROJECT_ROOT / "research" / regime / symbol / freq
+        _research_base = PROJECT_ROOT / "research" / regime / symbol / freq
     else:
-        _research_base = _PROJECT_ROOT / "research" / regime / direction / symbol / freq
+        _research_base = PROJECT_ROOT / "research" / regime / direction / symbol / freq
     output_dir = _research_base / f"_{version}_temp"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -513,10 +324,14 @@ def run_single_strategy_pipeline(
             opt_score = bare_sharpe
             is_robust = False
 
-    # Save params
-    params_path = output_dir / "params.yaml"
-    _save_yaml({"best_params": best_params, "opt_score": opt_score, "is_robust": is_robust}, params_path)
-    print(f"  [optimize] Params saved to {params_path}")
+    # Save params (complete format with metadata, ranges, indicators)
+    from pipeline.report_files import generate_params_yaml, _save_yaml as _save_yaml_clean
+    params_data = generate_params_yaml(
+        strategy_class, best_params, opt_score, is_robust,
+        symbol, freq, n_trials=0,  # updated in final companion file write
+    )
+    _save_yaml_clean(params_data, output_dir / "params.yaml")
+    print(f"  [optimize] Params saved to {output_dir / 'params.yaml'}")
 
     # ── Step D — 6-Layer Validation ────────────────────────────────────────────
     print(f"\n{'─' * 40}")
@@ -667,7 +482,7 @@ def run_single_strategy_pipeline(
     if len(oos_daily_returns) >= 30:
         try:
             bootstrap_result_obj = bootstrap_test(oos_daily_returns)
-            print(f"  [D5a bootstrap] verdict={bootstrap_result_obj.verdict}  p_positive={bootstrap_result_obj.p_positive:.3f}")
+            print(f"  [D5a bootstrap] verdict={bootstrap_result_obj.verdict}  CI=[{bootstrap_result_obj.sharpe_ci_lower:.3f}, {bootstrap_result_obj.sharpe_ci_upper:.3f}]")
         except Exception as e:
             print(f"  [D5a] Bootstrap error: {e}")
 
@@ -814,30 +629,38 @@ def run_single_strategy_pipeline(
             if max_contribution > 0.70:
                 period_concentration_warning = True
 
-    val_summary = {
-        "hard_reject": val_result.hard_reject if val_result else False,
-        "reject_reasons": list(val_result.reject_reasons) if val_result else [],
-        "soft_flags": list(val_result.soft_flags) if val_result else [],
-        "oos_full_span": {
-            "start": str(min(lbl.buffer_start or lbl.start for lbl in oos_labels)) if oos_labels else None,
-            "end": str(max(lbl.buffer_end or lbl.end for lbl in oos_labels)) if oos_labels else None,
-            "total_return": oos_total_return,
-            "annualized_return": oos_ann_return,
-            "sharpe": float(oos_sharpe),
-            "n_trades": int(oos_n_trades),
-            "max_drawdown": oos_max_dd,
-            "profit_factor": oos_pf,
-            "max_single_trade_pct": oos_max_single_trade,
-        },
-        "oos_period_breakdown": oos_period_returns,
-        "period_concentration_warning": period_concentration_warning,
-        "oos_sharpe": float(oos_sharpe),
-        "industrial_oos_sharpe": float(industrial_oos_sharpe),
-        "is_sharpe": float(is_sharpe),
-        "n_trades_oos": int(oos_n_trades),
-        "dsr": float(dsr_value) if dsr_value is not None else None,
+    from pipeline.report_files import generate_validation_yaml, _save_yaml as _save_yaml_clean
+
+    oos_full_span_dict = {
+        "start": str(min(lbl.buffer_start or lbl.start for lbl in oos_labels)) if oos_labels else None,
+        "end": str(max(lbl.buffer_end or lbl.end for lbl in oos_labels)) if oos_labels else None,
+        "total_return": oos_total_return,
+        "annualized_return": oos_ann_return,
+        "sharpe": float(oos_sharpe),
+        "n_trades": int(oos_n_trades),
+        "max_drawdown": oos_max_dd,
+        "profit_factor": oos_pf,
+        "max_single_trade_pct": oos_max_single_trade,
     }
-    _save_yaml(val_summary, output_dir / "validation.yaml")
+    val_data = generate_validation_yaml(
+        cv_result=cv_result,
+        oos_result=oos_result_obj,
+        oos_full_span=oos_full_span_dict,
+        oos_period_breakdown=oos_period_returns,
+        period_concentration_warning=period_concentration_warning,
+        wf_result=wf_result_obj,
+        dsr_value=dsr_value,
+        observed_sharpe=float(oos_sharpe) if oos_labels else None,
+        n_trials=n_trials_for_dsr,
+        sharpe_std=sharpe_std if fold_sharpes else None,
+        n_obs=n_obs if fold_sharpes else None,
+        bootstrap_result=bootstrap_result_obj,
+        perm_result=perm_result_obj,
+        industrial_result=industrial_result_obj,
+        stress_result=stress_result_obj,
+        val_pipeline_result=val_result,
+    )
+    _save_yaml_clean(val_data, output_dir / "validation.yaml")
 
     # ── Step D Reports ─────────────────────────────────────────────────────────
     print(f"\n{'─' * 40}")
@@ -961,9 +784,11 @@ def run_single_strategy_pipeline(
         except Exception as e:
             print(f"  [E-E] Operational attribution error: {e}")
 
-        # Generate attribution report
+        # Generate attribution report (all 5 layers)
         try:
-            attr_md = generate_attribution_report(
+            from pipeline.report_files import generate_attribution_md
+            attr_md = generate_attribution_md(
+                signal_result=None,  # TODO: add Layer A signal attribution
                 horizon_result=horizon_result,
                 regime_result=regime_attr_result,
                 baseline_result=baseline_decomp_result,
@@ -979,39 +804,28 @@ def run_single_strategy_pipeline(
     else:
         print("  [E] Not enough OOS returns for attribution (need >= 10 bars)")
 
-    # ── Rename folder with OOS Total Return from oos.html ─────────────────────
-    import re as _re
-    import shutil as _shutil
+    # ── Final params.yaml rewrite with n_trials ──────────────────────────────
+    try:
+        params_final = generate_params_yaml(
+            strategy_class, best_params, opt_score, is_robust,
+            symbol, freq, n_trials=n_trials_for_dsr,
+        )
+        _save_yaml_clean(params_final, output_dir / "params.yaml")
+    except Exception:
+        pass  # early write already exists
 
-    oos_return_from_html = None
-    oos_html_path = output_dir / "oos.html"
-    if oos_html_path.exists():
-        try:
-            html_content = oos_html_path.read_text(encoding="utf-8")
-            m = _re.search(
-                r'总收益.*?<div[^>]*class="value[^"]*"[^>]*>([-+]?\d+\.\d+)%',
-                html_content, _re.DOTALL,
-            )
-            if m:
-                oos_return_from_html = float(m.group(1))
-        except Exception:
-            pass
-
-    if oos_return_from_html is not None:
-        sign = "+" if oos_return_from_html >= 0 else ""
-        final_name = f"{version}_{sign}{oos_return_from_html:.2f}%"
+    # ── Rename folder with OOS Total Return ──────────────────────────────────
+    # Use result.total_return directly instead of parsing HTML regex
+    if oos_full_result is not None:
+        ret_pct = oos_full_result.total_return * 100
+        sign = "+" if ret_pct >= 0 else ""
+        final_name = f"{version}_{sign}{ret_pct:.2f}%"
     else:
-        # Fallback: use result.total_return if HTML parsing failed
-        if oos_full_result is not None:
-            ret_pct = oos_full_result.total_return * 100
-            sign = "+" if ret_pct >= 0 else ""
-            final_name = f"{version}_{sign}{ret_pct:.2f}%"
-        else:
-            final_name = version
+        final_name = version
 
     final_dir = _research_base / final_name
     if final_dir.exists() and final_dir != output_dir:
-        _shutil.rmtree(final_dir)
+        shutil.rmtree(final_dir)
     if output_dir != final_dir:
         output_dir.rename(final_dir)
         output_dir = final_dir
@@ -1022,7 +836,7 @@ def run_single_strategy_pipeline(
         if (old_dir.is_dir()
             and old_dir.name.startswith(f"{version}_")
             and old_dir != output_dir):
-            _shutil.rmtree(old_dir)
+            shutil.rmtree(old_dir)
             print(f"  [cleanup] removed {old_dir.name}")
 
     # ── Final summary ──────────────────────────────────────────────────────────

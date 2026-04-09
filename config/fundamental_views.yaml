@@ -12,13 +12,16 @@ views:
     regime: null
   I:
     direction: long
-    regime: strong_trend
+    regime: mild_trend
   J:
     direction: neutral
     regime: null
   JM:
     direction: neutral
     regime: null
+  AG:
+    direction: long
+    regime: strong_trend
 
-updated_at: "2026-04-01"
-updated_by: "simon - I iron ore bullish research"
+updated_at: "2026-04-02"
+updated_by: "simon - I iron ore mild_trend long, AG silver strong_trend long"

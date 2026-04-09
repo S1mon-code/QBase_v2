@@ -1,5 +1,7 @@
 # Phase 6: 验证体系
 
+> **注意：** 目录结构已更新。策略现按 regime/direction/instrument/timeframe 组织。详见 [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md)
+
 **目标：** 6 层验证确保策略不是过拟合产物。
 
 **依赖：** Phase 5（优化完成的策略）
@@ -46,6 +48,8 @@ K-Fold (N > 10): 随机分 K 组
   WF Ratio = OOS_Sharpe / IS_Sharpe (≥ 0.5 合格)
   行为一致性（交易频率、持仓时间 vs IS）
   Industrial 模式 OOS Sharpe
+  年化收益 > 0
+  Profit Factor ≥ 1.3
 
 不淘汰负 Sharpe（Portfolio 可能需要对冲）
 标注: "疑似过拟合" / "行为异常" / "测试集偏高"
@@ -122,7 +126,7 @@ Industrial 衰减:
 | 层 | 硬淘汰 | 软标注 |
 |----|--------|--------|
 | Regime CV | FAIL | MARGINAL |
-| OOS | — | 负 Sharpe, WF Ratio < 0.5 |
+| OOS | 年化收益 ≤ 0, PF < 1.3 | 负 Sharpe, WF Ratio < 0.5, 单笔贡献 > 30% |
 | Walk-Forward | — | Win Rate < 50% |
 | Deflated Sharpe | — | DSR < 0.95 |
 | Bootstrap | CI 跨零 (FRAGILE) | — |

@@ -275,15 +275,22 @@ def alpha_adjusted_weights(
 def clip_and_redistribute(
     weights: dict[str, float],
     max_weight: float = 0.25,
+    per_strategy_caps: dict[str, float] | None = None,
 ) -> dict[str, float]:
-    """Clip any weight above max_weight, redistribute excess proportionally.
+    """Clip any weight above its cap, redistribute excess proportionally.
+
+    Each strategy's effective cap is ``min(max_weight, per_strategy_caps[s])``
+    when *per_strategy_caps* is provided.
 
     Parameters
     ----------
     weights : dict[str, float]
         Input weights (should sum to ~1.0).
     max_weight : float
-        Maximum allowed weight per strategy.
+        Default maximum allowed weight per strategy.
+    per_strategy_caps : dict[str, float] | None
+        Per-strategy weight caps from confidence grading.  Strategies
+        not present in this dict use *max_weight*.
 
     Returns
     -------
@@ -293,6 +300,11 @@ def clip_and_redistribute(
     if not weights:
         return {}
 
+    caps = per_strategy_caps or {}
+
+    def _cap(s: str) -> float:
+        return min(max_weight, caps.get(s, max_weight))
+
     result = dict(weights)
 
     for _ in range(10):  # iterate to convergence
@@ -300,9 +312,10 @@ def clip_and_redistribute(
         below: dict[str, float] = {}
 
         for s, w in result.items():
-            if w > max_weight:
-                excess += w - max_weight
-                result[s] = max_weight
+            cap = _cap(s)
+            if w > cap:
+                excess += w - cap
+                result[s] = cap
             else:
                 below[s] = w
 

@@ -15,26 +15,54 @@ class BacktestMetrics:
     """Metrics from a single backtest run."""
 
     sharpe: float
+    annualized_return: float  # e.g. 0.15 = 15%
     max_drawdown: float  # positive fraction (0.15 = 15%)
     cvar_95: float  # negative (worst 5% mean daily return)
     n_trades: int
     win_rate: float  # monthly positive ratio
+    profit_factor: float  # total profits / total losses
     skewness: float
     kurtosis: float
     daily_returns: np.ndarray  # for consistency analysis
     equity_curve: np.ndarray  # for quality analysis
+    max_single_trade_pct: float = 0.0  # largest single trade P&L as % of total
 
 
-def _score_performance(sharpe: float, phase: str) -> float:
-    """S_performance: risk-adjusted return score (0-10).
+def _score_return(annualized_return: float) -> float:
+    """Score absolute return on 0-10 scale.
 
-    Coarse phase: tanh compression to avoid chasing extreme Sharpe.
-    Fine phase: linear scaling for absolute precision.
+    Thresholds: 0% → 0, 5% → 3, 10% → 5, 20% → 7, 40% → 9, 60%+ → 10
+    """
+    thresholds = [(0.0, 0.0), (0.05, 3.0), (0.10, 5.0), (0.20, 7.0), (0.40, 9.0), (0.60, 10.0)]
+    if annualized_return <= thresholds[0][0]:
+        return thresholds[0][1]
+    if annualized_return >= thresholds[-1][0]:
+        return thresholds[-1][1]
+    for i in range(len(thresholds) - 1):
+        v0, s0 = thresholds[i]
+        v1, s1 = thresholds[i + 1]
+        if v0 <= annualized_return <= v1:
+            t = (annualized_return - v0) / (v1 - v0)
+            return s0 + t * (s1 - s0)
+    return thresholds[-1][1]
+
+
+def _score_performance(sharpe: float, annualized_return: float, phase: str) -> float:
+    """S_performance: risk-adjusted return + absolute return score (0-10).
+
+    Combines Sharpe score (60%) with absolute return score (40%).
+    This ensures strategies must both be efficient AND make money.
+
+    Coarse phase: Sharpe uses tanh compression to avoid chasing extremes.
+    Fine phase: Sharpe uses linear scaling for precision.
     """
     if phase == "coarse":
-        return 10.0 * math.tanh(0.7 * sharpe)
-    # fine
-    return min(10.0, sharpe * 10.0 / 3.0)
+        sharpe_score = 10.0 * math.tanh(0.7 * sharpe)
+    else:
+        sharpe_score = min(10.0, sharpe * 10.0 / 3.0)
+
+    return_score = _score_return(annualized_return)
+    return 0.6 * sharpe_score + 0.4 * return_score
 
 
 def _score_significance(sharpe: float, n_trades: int, skewness: float, kurtosis: float) -> float:
@@ -135,7 +163,11 @@ def composite_objective(
     if alpha_sharpe <= 0:
         return -5.0
 
-    s_perf = _score_performance(metrics.sharpe, phase)
+    # Hard filter: negative absolute return
+    if metrics.annualized_return <= 0:
+        return -5.0
+
+    s_perf = _score_performance(metrics.sharpe, metrics.annualized_return, phase)
     s_sig = _score_significance(
         metrics.sharpe, metrics.n_trades, metrics.skewness, metrics.kurtosis,
     )

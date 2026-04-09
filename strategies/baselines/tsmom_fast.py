@@ -29,6 +29,7 @@ class TSMOMFast(TrendingStrategy):
 
     name = "tsmom_fast"
     horizon = "fast"
+    direction = "both"
     signal_dimensions = ["momentum"]
     warmup: int = 25
 

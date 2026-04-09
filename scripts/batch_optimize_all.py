@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_AF_PATH = "/Users/simon/Desktop/AlphaForge"
+from pipeline.qbase_config import ALPHAFORGE_PATH as _AF_PATH, PROJECT_ROOT
 
 for p in (str(_PROJECT_ROOT), _AF_PATH):
     if p not in sys.path:

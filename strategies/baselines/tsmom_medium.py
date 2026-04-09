@@ -26,6 +26,7 @@ class TSMOMMedium(TrendingStrategy):
 
     name = "tsmom_medium"
     horizon = "medium"
+    direction = "both"
     signal_dimensions = ["momentum"]
     warmup: int = 65
 
