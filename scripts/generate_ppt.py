@@ -37,7 +37,7 @@ STRATEGIES = [
         "version": "v4",
         "oos_sharpe": 1.271,
         "oos_return": "+129.89%",
-        "strategy_name": "strong_trend_long_AG_2h_v4",
+        "strategy_name": "long_long_AG_2h_v4",
         "class_name": "StrongTrendLongAG2hV4",
         "indicators": [
             {"name": "KAMA(55)", "category": "趋势", "color": GOLD,
@@ -58,7 +58,7 @@ STRATEGIES = [
             "白银暴跌时平仓延迟较大（chandelier_mult=3.0 止损较宽）",
             "仅在强趋势环境下有效，均值回归行情会产生持续亏损",
         ],
-        "research_path": "research/strong_trend/long/AG/2h/v4_+129.89%",
+        "research_path": "research/long/long/AG/2h/v4_+129.89%",
     },
     {
         "quadrant": "AG Short",
@@ -69,7 +69,7 @@ STRATEGIES = [
         "version": "v13",
         "oos_sharpe": None,
         "oos_return": "+56.62%",
-        "strategy_name": "strong_trend_short_AG_1h_v13",
+        "strategy_name": "long_short_AG_1h_v13",
         "class_name": "StrongTrendShortAG1hV13",
         "indicators": [
             {"name": "MACD(6,16,5)", "category": "动量", "color": BLUE,
@@ -88,7 +88,7 @@ STRATEGIES = [
             "白银流动性在夜盘较低，1H信号可能受滑点影响",
             "做空策略天然面临无限风险，依赖 Chandelier Exit 止损",
         ],
-        "research_path": "research/strong_trend/short/AG/1h/v13_+56.62%",
+        "research_path": "research/long/short/AG/1h/v13_+56.62%",
     },
     {
         "quadrant": "I Long",
@@ -99,7 +99,7 @@ STRATEGIES = [
         "version": "v23",
         "oos_sharpe": 0.829,
         "oos_return": "+32.21%",
-        "strategy_name": "mild_trend_long_I_1h_v23",
+        "strategy_name": "long_long_I_1h_v23",
         "class_name": "MildTrendLongI1hV23",
         "indicators": [
             {"name": "Coppock Curve(10,14)", "category": "动量", "color": PURPLE,
@@ -118,7 +118,7 @@ STRATEGIES = [
             "OI 数据在某些时段可能不准确（换月期间 OI 异常波动）",
             "OOS Return +32.21% 相对 AG Long 偏低，铁矿波动率较低",
         ],
-        "research_path": "research/mild_trend/long/I/1h/v23_+32.21%",
+        "research_path": "research/long/long/I/1h/v23_+32.21%",
     },
     {
         "quadrant": "I Short",
@@ -129,7 +129,7 @@ STRATEGIES = [
         "version": "v3",
         "oos_sharpe": 1.198,
         "oos_return": "+21.19%",
-        "strategy_name": "mild_trend_short_I_2h_v3",
+        "strategy_name": "long_short_I_2h_v3",
         "class_name": "MildTrendShortI2hV3",
         "indicators": [
             {"name": "HMA(40)", "category": "趋势", "color": GOLD,
@@ -150,7 +150,7 @@ STRATEGIES = [
             "Schaff Trend Cycle 在快速反转时反应不够快（双重平滑的代价）",
             "做空铁矿在供给侧改革等政策驱动的上涨中可能面临较大回撤",
         ],
-        "research_path": "research/mild_trend/short/I/2h/v3_+21.19%",
+        "research_path": "research/long/short/I/2h/v3_+21.19%",
     },
 ]
 
@@ -215,7 +215,7 @@ def create_title_slide(prs):
                  "AG Long  |  AG Short  |  I Long  |  I Short", font_size=16, color=GRAY,
                  alignment=PP_ALIGN.CENTER)
     add_text_box(slide, 0.5, 4.5, 9.0, 1.0,
-                 "回测引擎：AlphaForge V7.2 Industrial Mode\n"
+                 "回测引擎：AlphaForge V7.6.1 Industrial Mode\n"
                  "验证体系：6层验证 + 5层归因 + Signal Blending\n"
                  "报告日期：2026-04-03",
                  font_size=12, color=GRAY, alignment=PP_ALIGN.CENTER)
@@ -367,7 +367,7 @@ def create_strategy_slides(prs, strategy):
         f"信号维度: {', '.join(ind['category'] for ind in s['indicators'])}\n"
         f"信号范围: {'[0, 1] 只做多' if s['direction'] == '做多' else '[-1, 0] 只做空'}\n"
         f"可优化参数: {len(s['indicators']) + 1} 个（含 chandelier_mult）\n"
-        f"回测模式: AlphaForge V7.2 Industrial（含成交量适应价差、动态保证金、方向不对称冲击）"
+        f"回测模式: AlphaForge V7.6.1 Industrial（含成交量适应价差、动态保证金、方向不对称冲击）"
     )
     add_text_box(slide2, 0.3, 4.65, 9.0, 2.0, details, font_size=10, color=GRAY)
 
@@ -385,7 +385,7 @@ def create_summary_slide(prs):
         "  · 项目：QBase_v2 黑色系+贵金属 多策略系统\n"
         "  · 品种：铁矿石 (I)、白银 (AG)\n"
         "  · 策略总数：390 个（4 象限 × 4 频率 × 多版本）\n"
-        "  · 回测引擎：AlphaForge V7.2 Industrial Mode\n\n"
+        "  · 回测引擎：AlphaForge V7.6.1 Industrial Mode\n\n"
         "◆ 四象限最优组合\n"
         "  · AG Long 2h v4: KAMA+TSI+CMF → Sharpe 1.27, Return +129.89%\n"
         "  · AG Short 1h v13: MACD+Force Index → Return +56.62%\n"

@@ -3,11 +3,10 @@
 Long:  stop = highest_since_entry - atr_mult * ATR(14)
 Short: stop = lowest_since_entry  + atr_mult * ATR(14)
 
-ATR multiplier depends on regime:
-  strong_trend:   2.5-3.5 (wide, let trend breathe)
-  mild_trend:     2.0-2.5
-  mean_reversion: 1.5-2.0 (from entry price, not extremum)
-  crisis:         1.5 fixed + time stop
+ATR multiplier defaults:
+  long:      2.5
+  short:     2.5
+  trending:  2.5 (backward-compat alias)
 """
 
 from __future__ import annotations
@@ -15,18 +14,17 @@ from __future__ import annotations
 import numpy as np
 
 
-# Default ATR multiplier ranges per regime (midpoint used when not specified).
+# Default ATR multiplier per regime.
 _REGIME_DEFAULTS: dict[str, float] = {
-    "strong_trend": 3.0,
-    "mild_trend": 2.25,
-    "mean_reversion": 1.75,
-    "crisis": 1.5,
-    # Backward-compat alias
-    "trending": 3.0,
+    "long": 2.5,
+    "short": 2.5,
+    # Backward-compat aliases
+    "trending": 2.5,
+    "long": 2.5,
+    "short": 2.5,
+    "mean_reversion": 2.5,
+    "crisis": 2.5,
 }
-
-# Crisis time-stop default: bars without profit before forced exit.
-_CRISIS_TIME_STOP_BARS: int = 10
 
 
 class ChandelierExit:
@@ -38,22 +36,17 @@ class ChandelierExit:
         ATR multiplier for stop distance.  When *None* the class picks a
         default based on ``regime``.
     regime : str
-        One of ``strong_trend``, ``mild_trend``, ``mean_reversion``,
-        ``crisis``, or the alias ``trending``.
-    crisis_time_stop : int
-        Number of bars without profit before forced exit in crisis regime.
+        One of ``long``, ``short``, or the alias ``trending``.
     """
 
     def __init__(
         self,
         atr_mult: float | None = None,
         regime: str = "trending",
-        crisis_time_stop: int = _CRISIS_TIME_STOP_BARS,
     ) -> None:
         """Initialise the Chandelier Exit."""
         self._regime = regime
-        self._atr_mult = atr_mult if atr_mult is not None else _REGIME_DEFAULTS.get(regime, 3.0)
-        self._crisis_time_stop = crisis_time_stop
+        self._atr_mult = atr_mult if atr_mult is not None else _REGIME_DEFAULTS.get(regime, 2.5)
 
         # Internal mutable state – reset per trade.
         self._highest: float = -np.inf
@@ -103,17 +96,10 @@ class ChandelierExit:
 
         distance = self._atr_mult * atr
 
-        if self._regime == "mean_reversion":
-            # Mean-reversion: stop is measured from *entry price*, not extremum.
-            if side == 1:
-                new_stop = self._entry_price - distance
-            else:
-                new_stop = self._entry_price + distance
+        if side == 1:
+            new_stop = self._highest - distance
         else:
-            if side == 1:
-                new_stop = self._highest - distance
-            else:
-                new_stop = self._lowest + distance
+            new_stop = self._lowest + distance
 
         # Ratchet: long stop can only rise; short stop can only fall.
         if np.isnan(self._stop):
@@ -132,11 +118,7 @@ class ChandelierExit:
         return self._stop
 
     def is_stopped(self, close: float, side: int) -> bool:
-        """Return True if the current close has hit the stop.
-
-        Also triggers in crisis regime when the time-stop condition is met
-        (held for ``crisis_time_stop`` bars without any profit).
-        """
+        """Return True if the current close has hit the stop."""
         if np.isnan(self._stop) or side == 0:
             return False
 
@@ -145,11 +127,6 @@ class ChandelierExit:
             return True
         if side == -1 and close >= self._stop:
             return True
-
-        # Crisis time stop: N bars without any profit.
-        if self._regime == "crisis":
-            if self._bars_since_entry >= self._crisis_time_stop and self._best_pnl <= 0.0:
-                return True
 
         return False
 
@@ -191,7 +168,7 @@ class ChandelierExit:
         atr_mult : float
             ATR multiplier.
         regime : str
-            Regime label (affects mean_reversion logic).
+            Regime label (``"long"`` or ``"short"``).
 
         Returns
         -------
@@ -204,8 +181,6 @@ class ChandelierExit:
         lowest = np.inf
         prev_side = 0
         stop = np.nan
-
-        use_entry = regime == "mean_reversion"
 
         for i in range(n):
             s = int(sides[i])
@@ -227,11 +202,7 @@ class ChandelierExit:
 
             dist = atr_mult * atrs[i]
 
-            if use_entry:
-                entry_p = entries[i]
-                raw = (entry_p - dist) if s == 1 else (entry_p + dist)
-            else:
-                raw = (highest - dist) if s == 1 else (lowest + dist)
+            raw = (highest - dist) if s == 1 else (lowest + dist)
 
             if np.isnan(stop):
                 stop = raw

@@ -28,7 +28,7 @@ OUTPUT_PPT = Path("/Users/simon/Desktop/QBase_Strategy_Report.pptx")
 STRATEGIES = [
     {
         "key": "ag_long",
-        "html": BASE_DIR / "research/strong_trend/long/AG/2h/v4_+117.13%/oos.html",
+        "html": BASE_DIR / "research/long/long/AG/2h/v4_+117.13%/oos.html",
         "name": "AG 做多",
         "quadrant": "白银做多",
         "instrument": "白银(AG)",
@@ -49,7 +49,7 @@ STRATEGIES = [
     },
     {
         "key": "ag_short",
-        "html": BASE_DIR / "research/strong_trend/short/AG/1h/v18_+44.69%/oos.html",
+        "html": BASE_DIR / "research/long/short/AG/1h/v18_+44.69%/oos.html",
         "name": "AG 做空",
         "quadrant": "白银做空",
         "instrument": "白银(AG)",
@@ -69,7 +69,7 @@ STRATEGIES = [
     },
     {
         "key": "i_long",
-        "html": BASE_DIR / "research/mild_trend/long/I/4h/v27_+44.71%/oos.html",
+        "html": BASE_DIR / "research/long/long/I/4h/v27_+44.71%/oos.html",
         "name": "铁矿 做多",
         "quadrant": "铁矿做多",
         "instrument": "铁矿石(I)",
@@ -88,7 +88,7 @@ STRATEGIES = [
     },
     {
         "key": "i_short",
-        "html": BASE_DIR / "research/mild_trend/short/I/2h/v3_+21.19%/oos.html",
+        "html": BASE_DIR / "research/long/short/I/2h/v3_+21.19%/oos.html",
         "name": "铁矿 做空",
         "quadrant": "铁矿做空",
         "instrument": "铁矿石(I)",
@@ -266,7 +266,7 @@ def build_ppt():
                  color=TEXT_MUTED, alignment=PP_ALIGN.CENTER)
 
     add_text_box(slide, Inches(0.5), Inches(6.2), Inches(9), Inches(0.5),
-                 "AlphaForge V7.2 \u00b7 2026年4月", font_size=13,
+                 "AlphaForge V7.6.1 \u00b7 2026年4月", font_size=13,
                  color=TEXT_MUTED, alignment=PP_ALIGN.CENTER)
 
     # ── Slide 2: Executive Summary ───────────────────────────────────────
@@ -339,7 +339,7 @@ def build_ppt():
 
     # Footer note
     add_text_box(slide, Inches(0.6), Inches(7.25), Inches(8.8), Inches(0.3),
-                 "* 所有数据基于样本外（OOS）回测验证，使用 AlphaForge V7.2 工业级模式（含真实交易成本、保证金、滑点）",
+                 "* 所有数据基于样本外（OOS）回测验证，使用 AlphaForge V7.6.1 工业级模式（含真实交易成本、保证金、滑点）",
                  font_size=9, color=TEXT_MUTED, alignment=PP_ALIGN.CENTER)
 
     # ── Slides 3-6: Strategy detail slides ───────────────────────────────

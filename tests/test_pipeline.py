@@ -67,7 +67,7 @@ class TestPipelineConfig:
         cfg = PipelineConfig(instrument="RB")
         assert cfg.instrument == "RB"
         assert cfg.freq == "1h"
-        assert cfg.regime == "strong_trend"
+        assert cfg.regime == "long"
         assert cfg.direction == "up"
         assert cfg.n_trials == 80
         assert cfg.industrial is True
@@ -76,14 +76,14 @@ class TestPipelineConfig:
         cfg = PipelineConfig(
             instrument="I",
             freq="4h",
-            regime="mean_reversion",
+            regime="short",
             direction="down",
             n_trials=120,
             industrial=False,
         )
         assert cfg.instrument == "I"
         assert cfg.freq == "4h"
-        assert cfg.regime == "mean_reversion"
+        assert cfg.regime == "short"
         assert cfg.direction == "down"
         assert cfg.n_trials == 120
         assert cfg.industrial is False
@@ -157,7 +157,7 @@ class TestQBasePipeline:
                 {
                     "start": "2020-01-01",
                     "end": "2020-06-30",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "split": "train",
                 }
@@ -183,7 +183,7 @@ class TestQBasePipeline:
                 {
                     "start": "2019-03-01",
                     "end": "2019-09-30",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "split": "train",
                 }
@@ -205,7 +205,7 @@ class TestQBasePipeline:
                 {
                     "start": "2020-01-01",
                     "end": "2020-06-30",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "split": "train",
                 }
@@ -252,7 +252,7 @@ class TestQBasePipeline:
                 {
                     "start": "2021-01-01",
                     "end": "2021-12-31",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "split": "train",
                 }
@@ -307,7 +307,7 @@ class TestCLIParser:
     def test_optimize_defaults(self) -> None:
         parser = create_parser()
         args = parser.parse_args(["optimize", "s1", "--symbol", "I"])
-        assert args.regime == "strong_trend"
+        assert args.regime == "long"
         assert args.direction == "up"
         assert args.trials == 80
 
@@ -338,12 +338,12 @@ class TestCLIParser:
     def test_portfolio_build(self) -> None:
         parser = create_parser()
         args = parser.parse_args([
-            "portfolio", "build", "--symbol", "RB", "--regime", "strong_trend",
+            "portfolio", "build", "--symbol", "RB", "--regime", "long",
         ])
         assert args.command == "portfolio"
         assert args.portfolio_action == "build"
         assert args.symbol == "RB"
-        assert args.regime == "strong_trend"
+        assert args.regime == "long"
 
     def test_portfolio_score(self) -> None:
         parser = create_parser()
@@ -354,12 +354,12 @@ class TestCLIParser:
     def test_pipeline_subcommand(self) -> None:
         parser = create_parser()
         args = parser.parse_args([
-            "pipeline", "--symbol", "RB", "--regime", "mild_trend",
+            "pipeline", "--symbol", "RB", "--regime", "short",
             "--direction", "down", "--trials", "50",
         ])
         assert args.command == "pipeline"
         assert args.symbol == "RB"
-        assert args.regime == "mild_trend"
+        assert args.regime == "short"
         assert args.direction == "down"
         assert args.trials == 50
 
@@ -367,7 +367,7 @@ class TestCLIParser:
         parser = create_parser()
         args = parser.parse_args(["pipeline", "--symbol", "RB"])
         assert args.freq == "1h"
-        assert args.regime == "strong_trend"
+        assert args.regime == "long"
         assert args.direction == "up"
         assert args.trials == 80
 
@@ -399,7 +399,7 @@ class TestCLIMain:
                 {
                     "start": "2020-01-01",
                     "end": "2020-06-30",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "split": "train",
                 }

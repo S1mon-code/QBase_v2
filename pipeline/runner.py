@@ -27,7 +27,7 @@ class PipelineConfig:
 
     instrument: str
     freq: str = "1h"
-    regime: str = "strong_trend"
+    regime: str = "long"
     direction: str = "up"
     n_trials: int = 80
     industrial: bool = True
@@ -141,23 +141,23 @@ class QBasePipeline:
         """Run optimisation.  Requires AlphaForge connection."""
         # NOTE: See AlphaForge CLAUDE.md for backtesting API
         raise NotImplementedError(
-            "Connect to AlphaForge V6.0 for optimization"
+            "Connect to AlphaForge V7.6.1 for optimization"
         )
 
     def _step_validate(self) -> None:
         """Run validation.  Requires optimisation results."""
         raise NotImplementedError(
-            "Connect to AlphaForge V6.0 for validation"
+            "Connect to AlphaForge V7.6.1 for validation"
         )
 
     def _step_attribute(self) -> None:
         """Run attribution.  Requires validated strategies."""
         raise NotImplementedError(
-            "Connect to AlphaForge V6.0 for attribution"
+            "Connect to AlphaForge V7.6.1 for attribution"
         )
 
     def _step_portfolio(self) -> None:
         """Build portfolio.  Requires attributed strategies."""
         raise NotImplementedError(
-            "Connect to AlphaForge V6.0 for portfolio construction"
+            "Connect to AlphaForge V7.6.1 for portfolio construction"
         )

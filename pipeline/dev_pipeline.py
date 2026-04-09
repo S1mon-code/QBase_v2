@@ -7,9 +7,9 @@ Usage:
     from pipeline.dev_pipeline import run_baselines, run_single_strategy_pipeline
     from strategies.trending.medium.v1 import TrendMediumV1
 
-    baselines = run_baselines("I", "long", "strong_trend", freq="daily")
+    baselines = run_baselines("I", "long", "long", freq="daily")
     result = run_single_strategy_pipeline(
-        TrendMediumV1, "I", "long", "strong_trend", "medium", "v1"
+        TrendMediumV1, "I", "long", "long", "medium", "v1"
     )
 """
 
@@ -88,7 +88,7 @@ def run_baselines(
     Args:
         symbol:    Instrument code, e.g. "I".
         direction: "long" or "short".
-        regime:    Regime name, e.g. "strong_trend".
+        regime:    Regime name, e.g. "long".
         freq:      Bar frequency.
 
     Returns:
@@ -156,7 +156,7 @@ def run_single_strategy_pipeline(
         strategy_class:  QBase strategy class to develop.
         symbol:          Instrument code, e.g. "I".
         direction:       "long" or "short".
-        regime:          Regime name, e.g. "strong_trend".
+        regime:          Regime name, e.g. "long".
         horizon:         "fast", "medium", or "slow".
         version:         Version string, e.g. "v1".
         freq:            Bar frequency.
@@ -175,10 +175,7 @@ def run_single_strategy_pipeline(
 
     # Output directory — temp dir first, renamed with OOS return after report generation
     # Format: research/{regime}/{direction}/{instrument}/{timeframe}/v{N}_{+/-}{return}%
-    if regime == "mean_reversion":
-        _research_base = PROJECT_ROOT / "research" / regime / symbol / freq
-    else:
-        _research_base = PROJECT_ROOT / "research" / regime / direction / symbol / freq
+    _research_base = PROJECT_ROOT / "research" / regime / direction / symbol / freq
     output_dir = _research_base / f"_{version}_temp"
     output_dir.mkdir(parents=True, exist_ok=True)
 

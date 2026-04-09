@@ -198,58 +198,41 @@ class TestRunAllChecks:
 class TestRegimeAlert:
     """Tests for regime consistency checks."""
 
-    def test_no_mismatch_mild_trend(self) -> None:
-        """Normal mild_trend conditions produce no alert."""
-        assert check_regime_consistency("mild_trend", 50, 25, 3.0) is None
+    def test_no_mismatch_long(self) -> None:
+        """Normal long conditions produce no alert."""
+        assert check_regime_consistency("long", 50, 25, 3.0) is None
 
-    def test_no_mismatch_strong_trend(self) -> None:
-        """Normal strong_trend conditions produce no alert."""
-        assert check_regime_consistency("strong_trend", 60, 30, 8.0) is None
+    def test_no_mismatch_short(self) -> None:
+        """Normal short conditions produce no alert."""
+        assert check_regime_consistency("short", 60, 30, -8.0) is None
 
-    def test_mild_trend_extreme_vol(self) -> None:
-        """Mild trend with extreme volatility -> critical."""
-        alert = check_regime_consistency("mild_trend", 95, 25, 3.0)
+    def test_extreme_vol(self) -> None:
+        """Extreme volatility -> critical."""
+        alert = check_regime_consistency("long", 95, 25, 3.0)
         assert alert is not None
         assert alert.severity == "critical"
         assert alert.detected_behavior == "extreme_volatility"
 
-    def test_mean_reversion_extreme_vol(self) -> None:
-        """Mean reversion with extreme volatility -> critical."""
-        alert = check_regime_consistency("mean_reversion", 95, 25, 3.0)
-        assert alert is not None
-        assert alert.severity == "critical"
-
-    def test_mean_reversion_strong_move(self) -> None:
-        """Mean reversion with big return -> warning."""
-        alert = check_regime_consistency("mean_reversion", 50, 25, 18.0)
+    def test_long_against_regime(self) -> None:
+        """Long regime but large negative return -> warning."""
+        alert = check_regime_consistency("long", 50, 25, -15.0)
         assert alert is not None
         assert alert.severity == "warning"
-        assert alert.detected_behavior == "strong_directional_move"
+        assert alert.detected_behavior == "against_regime"
 
-    def test_strong_trend_weak_adx(self) -> None:
-        """Strong trend but ADX < 15 -> warning."""
-        alert = check_regime_consistency("strong_trend", 50, 10, 5.0)
+    def test_short_against_regime(self) -> None:
+        """Short regime but large positive return -> warning."""
+        alert = check_regime_consistency("short", 50, 25, 15.0)
         assert alert is not None
         assert alert.severity == "warning"
-        assert alert.detected_behavior == "weak_trend"
+        assert alert.detected_behavior == "against_regime"
 
-    def test_mild_trend_upgrade(self) -> None:
-        """Mild trend with strong ADX + large return -> info."""
-        alert = check_regime_consistency("mild_trend", 50, 45, 12.0)
+    def test_weak_trend(self) -> None:
+        """Weak trend strength -> info."""
+        alert = check_regime_consistency("long", 50, 10, 5.0)
         assert alert is not None
         assert alert.severity == "info"
-        assert alert.detected_behavior == "possible_strong_trend"
-
-    def test_crisis_calm_market(self) -> None:
-        """Crisis assigned but calm market -> warning."""
-        alert = check_regime_consistency("crisis", 20, 15, 1.0)
-        assert alert is not None
-        assert alert.severity == "warning"
-        assert alert.detected_behavior == "calm_market"
-
-    def test_no_mismatch_mean_reversion(self) -> None:
-        """Normal mean reversion conditions produce no alert."""
-        assert check_regime_consistency("mean_reversion", 50, 20, 2.0) is None
+        assert alert.detected_behavior == "weak_trend"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -351,9 +334,9 @@ class TestDashboard:
     def test_basic_structure(self) -> None:
         """Dashboard with strategy data returns correct structure."""
         returns = {"strat_1": np.full(120, 0.001)}
-        dash = generate_dashboard("RB", strategy_returns=returns, regime="mild_trend")
+        dash = generate_dashboard("RB", strategy_returns=returns, regime="long")
         assert dash.instrument == "RB"
-        assert dash.active_regime == "mild_trend"
+        assert dash.active_regime == "long"
         assert dash.n_active_strategies == 1
         assert len(dash.strategies) == 1
         assert dash.strategies[0].name == "strat_1"

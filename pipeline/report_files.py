@@ -9,7 +9,7 @@ Usage:
     from pipeline.report_files import generate_companion_files
 
     generate_companion_files(
-        output_dir=Path("research/mild_trend/long/I/4h/v27_+44.71%"),
+        output_dir=Path("research/long/long/I/4h/v27_+44.71%"),
         strategy_class=MildTrendLongI4hV27,
         best_params={"mcginley_period": 20},
         opt_score=0.79, is_robust=True,

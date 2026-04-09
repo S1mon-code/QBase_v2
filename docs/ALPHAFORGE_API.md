@@ -1,11 +1,11 @@
-# AlphaForge V7.2 API 参考
+# AlphaForge V7.6.1 API 参考
 
 > 从 CLAUDE.md 提取的 AlphaForge 回测引擎完整 API 文档。
 > AlphaForge 路径：`/Users/simon/Desktop/AlphaForge`
 
 ---
 
-## AlphaForge V7.2 集成指南
+## AlphaForge V7.6.1 集成指南
 
 AlphaForge 是 QBase_v2 的回测执行引擎（Layer 8）。本节提供完整 API 参考，供开发者在 QBase 中直接调用。
 
@@ -15,6 +15,9 @@ AlphaForge 是 QBase_v2 的回测执行引擎（Layer 8）。本节提供完整 
 
 | 版本 | 核心新增 |
 |------|---------|
+| V7.6.1 | NaN保证金防护 + CFFEX限额时序修复 + 保守价差策略 + BacktestConfig版本化 + specs_hash追踪 + 38新测试 |
+| V7.6 | benchmark_bar_data + 跨频率BH一致性 + 报告视觉放大1.3x |
+| V7.5 | Carver价格规范 + K线/BH全部raw + overlay raw空间重算 |
 | V7.2 | 报告系统重构 + Metrics Cards 升级 + 权益曲线归一化 + K线图增强 + QBase 指标集成 + 持仓历史追踪 + dynamic_margin 保证金释放修复 |
 | V7.1 | Purged K-Fold CV / WF+Optuna 联合优化 / ML Pipeline (LightGBM/XGBoost) |
 | V7.0 | 止盈止损订单系统 / DecayDetector / ExperimentTracker / LiveGateway 骨架 |
@@ -172,6 +175,10 @@ result.trades                # pd.DataFrame 交易明细
 # V7.0 衰减报告（>= 252 天数据时自动生成）
 result.decay_report          # DecayReport 或 None
 result.stability_score       # 0-100 稳定性评分，-1 = 数据不足
+
+# V7.6.1 元数据
+result.metadata['backtest_config']  # 完整 config dict（V7.6.1）
+result.metadata['specs_hash']       # specs.yaml SHA256 前12位（V7.6.1）
 ```
 
 ---
@@ -462,6 +469,10 @@ af ml-train --symbols RB,I,J --model lgbm --factors returns_5d,volatility_20d --
 14. **CFFEX 限额**：IF/IH/IC/IM 每日开仓 ≤ 50 手
 15. **锁板拒单**：涨跌停 + 近零成交量 → 拒绝所有订单
 16. **止损触发**：SL/TP/Trailing 在 bar 的 high/low 上检查，同 bar 提交，下一 bar open 执行
+17. **dynamic_margin 释放**：PositionEntry.margin_per_lot 记录开仓时实际保证金率，确保平仓释放一致（V7.2）
+18. **NaN防护**：保证金检查遇到NaN价格/margin → 立即强平（V7.6.1）
+19. **CFFEX限额时序**：daily_open_lots在待执行订单之前重置（V7.6.1）
+20. **保守价差**：rolling_avg_volume为NaN/0 → 最大价差乘数（V7.6.1）
 
 ---
 
@@ -621,3 +632,23 @@ reporter.generate_signal_blend_report(
 | 报告中看不到指标面板 | 策略必须实现 `get_indicator_panels(datetimes)` 方法；`backtest_runner` 自动注入 metadata |
 | 4h 交易次数比 1h 高 | 查看"独立交易统计"而非"调仓明细统计"。4h 用 continuous rebalancing 产生大量 partial fills，独立交易统计合并后数字正确 |
 | dynamic_margin 开启后 equity 异常 | 已修复：PositionEntry.margin_per_lot 确保平仓释放与开仓扣除一致 |
+| 跨频率 BH 基准不一致（如 1h 策略 vs daily BH） | V7.6: 使用 `benchmark_bar_data` 传入 daily bars 作为 BH 基准数据 |
+| NaN 价格导致保证金计算异常 | V7.6.1: NaN 防护自动强平，不再静默跳过 |
+| CFFEX 限额计数错误（先计数后重置） | V7.6.1: daily_open_lots 在待执行订单之前重置 |
+| 低成交量品种价差乘数爆表 | V7.6.1: rolling_avg_volume 为 NaN/0 时使用最大价差乘数 |
+
+---
+
+## 跨频率 BH 基准（V7.6）
+
+当策略频率与 Buy-and-Hold 基准频率不同时（如 1h 策略 vs daily BH），使用 `benchmark_bar_data` 确保一致性：
+
+```python
+reporter = HTMLReportGenerator()
+reporter.generate(result, "report.html",
+    bar_data={"I": bars_1h},
+    benchmark_bar_data={"I": bars_daily},  # V7.6: 跨freq BH一致
+    freq="1h", spec_manager=specs)
+```
+
+**规则：** 策略用自己频率的 bars（`bar_data`），BH 基准始终用 daily bars（`benchmark_bar_data`）。不传 `benchmark_bar_data` 时，BH 自动使用 `bar_data`（同频率场景无需额外配置）。

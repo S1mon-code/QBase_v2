@@ -1,7 +1,7 @@
 # Fundamental Directional Views
 # Updated by fundamental team (weekly/monthly)
 # direction: long / short / neutral
-# regime: strong_trend / mild_trend / mean_reversion / crisis
+# regime: long / short
 
 views:
   RB:
@@ -12,7 +12,7 @@ views:
     regime: null
   I:
     direction: long
-    regime: mild_trend
+    regime: long
   J:
     direction: neutral
     regime: null
@@ -21,7 +21,7 @@ views:
     regime: null
   AG:
     direction: long
-    regime: strong_trend
+    regime: long
 
-updated_at: "2026-04-02"
-updated_by: "simon - I iron ore mild_trend long, AG silver strong_trend long"
+updated_at: "2026-04-09"
+updated_by: "simon - regime simplified to long/short"

@@ -4,7 +4,7 @@ labeled_by: auto_bry_boschan_2026-04-01
 labels:
 - start: '2015-04-10'
   end: '2015-06-11'
-  regime: mild_trend
+  regime: long
   direction: up
   driver: 钢铁去产能预期，铁矿进口量阶段性回升
   buffer_start: '2015-02-10'
@@ -12,7 +12,7 @@ labels:
   split: train
 - start: '2015-06-11'
   end: '2015-12-10'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 中国需求预期大幅下修，钢厂限产
   buffer_start: '2015-04-11'
@@ -20,7 +20,7 @@ labels:
   split: train
 - start: '2015-12-10'
   end: '2016-04-23'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 供给侧改革落地，钢铁产能收缩预期强烈
   buffer_start: '2015-10-10'
@@ -28,7 +28,7 @@ labels:
   split: train
 - start: '2016-04-23'
   end: '2016-05-25'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 短期获利了结，部分省份钢厂恢复生产
   buffer_start: '2016-02-23'
@@ -36,7 +36,7 @@ labels:
   split: train
 - start: '2016-05-25'
   end: '2017-02-21'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 去产能政策深化，下半年需求回暖，钢厂补库推动铁矿大涨
   buffer_start: '2016-03-25'
@@ -44,7 +44,7 @@ labels:
   split: train
 - start: '2017-02-21'
   end: '2017-06-13'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 环保督察压制钢厂开工，铁矿需求短期萎缩
   buffer_start: '2016-12-21'
@@ -52,7 +52,7 @@ labels:
   split: train
 - start: '2017-06-13'
   end: '2017-08-22'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 旺季需求+钢厂利润改善，补库行情
   buffer_start: '2017-04-13'
@@ -60,7 +60,7 @@ labels:
   split: train
 - start: '2017-08-22'
   end: '2017-10-30'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 采暖季限产预期，需求淡季
   buffer_start: '2017-06-22'
@@ -68,7 +68,7 @@ labels:
   split: train
 - start: '2017-10-30'
   end: '2018-01-09'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 冬储需求，钢厂利润高位维持补库
   buffer_start: '2017-08-30'
@@ -76,7 +76,7 @@ labels:
   split: train
 - start: '2018-01-09'
   end: '2018-04-16'
-  regime: mild_trend
+  regime: short
   direction: down
   driver: 中美贸易摩擦预期，需求担忧升温
   buffer_start: '2017-11-09'
@@ -84,7 +84,7 @@ labels:
   split: train
 - start: '2018-04-16'
   end: '2019-07-19'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 巴西淡水河谷溃坝事故（2019年1月），全球铁矿供给骤降，史诗级逼空行情
   buffer_start: '2018-02-16'
@@ -92,7 +92,7 @@ labels:
   split: train
 - start: '2019-07-19'
   end: '2019-08-29'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 淡水河谷产能逐步恢复，中美贸易摩擦加剧
   buffer_start: '2019-05-19'
@@ -100,7 +100,7 @@ labels:
   split: train
 - start: '2019-08-29'
   end: '2020-08-18'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 国内基建托底，钢厂利润改善持续补库；疫情后国内率先复工带动需求恢复
   buffer_start: '2019-06-29'
@@ -108,7 +108,7 @@ labels:
   split: train
 - start: '2020-08-18'
   end: '2020-10-26'
-  regime: mild_trend
+  regime: short
   direction: down
   driver: 短暂调整，高炉检修季
   buffer_start: '2020-06-18'
@@ -116,7 +116,7 @@ labels:
   split: train
 - start: '2020-10-26'
   end: '2021-05-12'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 碳达峰前钢厂抢产，叠加海外需求复苏（拜登基建预期），铁矿飙升至历史高点
   buffer_start: '2020-08-26'
@@ -124,7 +124,7 @@ labels:
   split: train
 - start: '2021-05-12'
   end: '2021-11-18'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 双碳政策粗钢压减，钢厂大规模减产，铁矿需求断崖
   buffer_start: '2021-03-12'
@@ -132,7 +132,7 @@ labels:
   split: train
 - start: '2021-11-18'
   end: '2022-06-02'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 稳增长政策发力，基建地产需求预期回暖，冬奥后钢厂复产
   buffer_start: '2021-09-18'
@@ -140,7 +140,7 @@ labels:
   split: train
 - start: '2022-06-02'
   end: '2022-07-15'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 地产爆雷持续，钢厂高库存被动去化
   buffer_start: '2022-04-02'
@@ -148,7 +148,7 @@ labels:
   split: oos
 - start: '2022-07-15'
   end: '2023-03-13'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 疫情结束预期+地产纾困政策，国内需求修复，钢厂主动补库
   buffer_start: '2022-05-15'
@@ -156,7 +156,7 @@ labels:
   split: oos
 - start: '2023-03-13'
   end: '2023-05-25'
-  regime: mild_trend
+  regime: short
   direction: down
   driver: 复苏节奏不及预期，出行恢复但地产依然低迷
   buffer_start: '2023-01-13'
@@ -164,7 +164,7 @@ labels:
   split: oos
 - start: '2023-05-25'
   end: '2024-01-03'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 国内刺激政策持续，海外钢铁需求超预期，澳矿供应稳定
   buffer_start: '2023-03-25'
@@ -172,7 +172,7 @@ labels:
   split: oos
 - start: '2024-01-03'
   end: '2024-03-15'
-  regime: mild_trend
+  regime: short
   direction: down
   driver: 淡季需求走弱，地产数据持续低迷
   buffer_start: '2023-11-03'
@@ -180,7 +180,7 @@ labels:
   split: holdout
 - start: '2024-03-15'
   end: '2024-05-22'
-  regime: mild_trend
+  regime: long
   direction: up
   driver: 政策底部抄底资金入场，五一前补库需求
   buffer_start: '2024-01-15'
@@ -188,7 +188,7 @@ labels:
   split: holdout
 - start: '2024-05-22'
   end: '2024-09-23'
-  regime: strong_trend
+  regime: short
   direction: down
   driver: 地产政策效果有限，钢厂大面积亏损减产，铁矿跌破成本支撑
   buffer_start: '2024-03-22'
@@ -196,7 +196,7 @@ labels:
   split: holdout
 - start: '2024-09-23'
   end: '2025-02-21'
-  regime: strong_trend
+  regime: long
   direction: up
   driver: 924政策转向（央行降准+地产放开），大宗商品全线反弹，铁矿快速修复
   buffer_start: '2024-07-23'
@@ -204,7 +204,7 @@ labels:
   split: holdout
 - start: '2025-02-21'
   end: '2025-04-09'
-  regime: mild_trend
+  regime: short
   direction: down
   driver: 政策效果验证期，需求数据等待，资金获利了结
   buffer_start: '2024-12-21'
@@ -212,7 +212,7 @@ labels:
   split: holdout
 - start: '2025-04-09'
   end: '2025-09-20'
-  regime: mild_trend
+  regime: long
   direction: up
   driver: 基建投资加速落地，出口型钢厂需求带动铁矿消耗
   buffer_start: '2025-02-09'
@@ -220,7 +220,7 @@ labels:
   split: holdout
 - start: '2025-09-20'
   end: '2025-11-07'
-  regime: mild_trend
+  regime: short
   direction: down
   driver: 季节性淡季，出口需求阶段性减弱
   buffer_start: '2025-07-20'

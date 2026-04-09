@@ -65,12 +65,12 @@ class TestRunRegimeCV:
     """Test run_regime_cv computation."""
 
     def test_pass_result(self) -> None:
-        result = run_regime_cv([0.5, 0.6, 0.4, 0.3, 0.5], "trend_v1", "strong_trend")
+        result = run_regime_cv([0.5, 0.6, 0.4, 0.3, 0.5], "trend_v1", "long")
         assert result.verdict == "PASS"
         assert result.n_folds == 5
         assert result.win_rate == 1.0
         assert result.strategy == "trend_v1"
-        assert result.regime == "strong_trend"
+        assert result.regime == "long"
 
     def test_fail_all_negative(self) -> None:
         result = run_regime_cv([-0.5, -0.3, -0.8])
@@ -504,7 +504,7 @@ class TestPipeline:
         result = run_validation_pipeline(
             fold_sharpes=[0.5, 0.6, 0.4, 0.5],
             strategy="trend_v1",
-            regime="strong_trend",
+            regime="long",
             is_sharpe=1.5,
             oos_sharpe=1.2,
             window_sharpes=[0.5, 0.3, 0.4],

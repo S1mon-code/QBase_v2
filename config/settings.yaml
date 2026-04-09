@@ -22,7 +22,7 @@ stop_daily: -0.05               # -5% daily loss circuit breaker
 
 # Backtest
 trading_days_per_year: 252
-risk_free_rate: 0.03
+risk_free_rate: 0.0  # rf=0 standard (aligned with AlphaForge V7.6.1)
 
 # Instruments (black series)
 instruments:

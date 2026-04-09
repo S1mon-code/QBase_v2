@@ -1,4 +1,4 @@
-"""Batch regenerate all strong_trend/long/AG/1h strategies with full pipeline.
+"""Batch regenerate all long/AG/1h strategies with full pipeline.
 
 Uses ALL OOS periods (direction=up, split=oos, any regime).
 Renames output folders using oos.html Total Return.
@@ -45,9 +45,9 @@ PROJECT_ROOT = Path(_QB_PATH)
 SYMBOL = "AG"
 FREQ = "1h"
 DIRECTION = "long"
-REGIME = "strong_trend"
-STRATEGY_DIR = PROJECT_ROOT / "strategies" / "strong_trend" / "long" / "AG" / "1h"
-RESEARCH_DIR = PROJECT_ROOT / "research" / "strong_trend" / "long" / "AG" / "1h"
+REGIME = "long"
+STRATEGY_DIR = PROJECT_ROOT / "strategies" / "long" / "AG" / "1h"
+RESEARCH_DIR = PROJECT_ROOT / "research" / "long" / "long" / "AG" / "1h"
 
 loader = MarketDataLoader(f"{_AF_PATH}/data/")
 reporter = HTMLReportGenerator()
@@ -263,7 +263,7 @@ def run_strategy_pipeline(version: str, strategy_file: Path) -> dict:
 
 # ── Main ──
 if __name__ == "__main__":
-    strategy_files = sorted(STRATEGY_DIR.glob("strong_trend_long_AG_1h_v*.py"))
+    strategy_files = sorted(STRATEGY_DIR.glob("v*.py"))
     results = []
 
     for sf in strategy_files:

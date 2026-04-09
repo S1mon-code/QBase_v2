@@ -1,12 +1,12 @@
-"""Regenerate train.html + oos.html for ALL existing strategies with AlphaForge V7.2.
+"""Regenerate train.html + oos.html for ALL existing strategies with AlphaForge V7.6.1.
 
 Scans research/ for all strategy versions that have params.yaml,
-re-runs backtest with Industrial mode, generates fresh V7.2 reports,
+re-runs backtest with Industrial mode, generates fresh V7.6.1 reports,
 and updates folder names with OOS return.
 
 Usage:
     PYTHONPATH=.:../AlphaForge python scripts/regenerate_all_reports.py
-    PYTHONPATH=.:../AlphaForge python scripts/regenerate_all_reports.py --group mild_trend/long/I
+    PYTHONPATH=.:../AlphaForge python scripts/regenerate_all_reports.py --group long/I
     PYTHONPATH=.:../AlphaForge python scripts/regenerate_all_reports.py --freq 1h
 """
 from __future__ import annotations
@@ -32,10 +32,10 @@ TIMEFRAMES = ["daily", "1h", "2h", "4h"]
 
 # Label file mapping
 LABEL_FILES = {
-    ("mild_trend", "long", "I"): "I.yaml",
-    ("mild_trend", "short", "I"): "I_short.yaml",
-    ("strong_trend", "long", "AG"): "AG_long.yaml",
-    ("strong_trend", "short", "AG"): "AG_short.yaml",
+    ("long", "long", "I"): "I.yaml",
+    ("long", "short", "I"): "I_short.yaml",
+    ("long", "long", "AG"): "AG_long.yaml",
+    ("short", "short", "AG"): "AG_short.yaml",
 }
 
 
@@ -47,18 +47,9 @@ def discover_groups():
         if not regime_dir.is_dir() or regime_dir.name.startswith((".", "_", "template", "baseline")):
             continue
         regime = regime_dir.name
-        if regime == "mean_reversion":
-            for inst_dir in sorted(regime_dir.iterdir()):
-                if inst_dir.is_dir() and not inst_dir.name.startswith("."):
-                    groups.append((regime, "both", inst_dir.name))
-        else:
-            for dir_dir in sorted(regime_dir.iterdir()):
-                if not dir_dir.is_dir() or dir_dir.name.startswith("."):
-                    continue
-                direction = dir_dir.name
-                for inst_dir in sorted(dir_dir.iterdir()):
-                    if inst_dir.is_dir() and not inst_dir.name.startswith("."):
-                        groups.append((regime, direction, inst_dir.name))
+        for inst_dir in sorted(regime_dir.iterdir()):
+            if inst_dir.is_dir() and not inst_dir.name.startswith((".", "_")):
+                groups.append((regime, regime, inst_dir.name))
     return groups
 
 
@@ -244,7 +235,7 @@ def regenerate_group(regime, direction, instrument, freq_filter=None):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--group", help="e.g. mild_trend/long/I")
+    parser.add_argument("--group", help="e.g. long/I")
     parser.add_argument("--freq", choices=TIMEFRAMES)
     args = parser.parse_args()
 

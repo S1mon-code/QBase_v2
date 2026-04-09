@@ -26,11 +26,11 @@ from pipeline.dev_pipeline import run_single_strategy_pipeline
 # Groups to optimize
 GROUPS = [
     # (regime, direction, instrument, label_file, signal_direction)
-    ("strong_trend", "long", "I", "I_long.yaml", "long"),
-    ("strong_trend", "long", "AG", "AG_long.yaml", "long"),
-    ("strong_trend", "short", "AG", "AG_short.yaml", "short"),
-    ("mild_trend", "long", "I", "I_long.yaml", "long"),
-    ("mild_trend", "short", "I", "I_short.yaml", "short"),
+    ("long", "long", "I", "I_long.yaml", "long"),
+    ("long", "long", "AG", "AG_long.yaml", "long"),
+    ("short", "short", "AG", "AG_short.yaml", "short"),
+    ("long", "long", "I", "I_long.yaml", "long"),
+    ("short", "short", "I", "I_short.yaml", "short"),
 ]
 
 TIMEFRAMES = ["daily", "1h", "2h", "4h"]

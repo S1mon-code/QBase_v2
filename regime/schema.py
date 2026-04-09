@@ -16,7 +16,7 @@ import yaml
 
 # --- Valid enum values ---
 
-VALID_REGIMES = frozenset({"strong_trend", "mild_trend", "mean_reversion", "crisis"})
+VALID_REGIMES = frozenset({"long", "short"})
 VALID_DIRECTIONS = frozenset({"up", "down", "neutral"})
 VALID_SPLITS = frozenset({"train", "oos", "holdout"})
 
@@ -31,7 +31,7 @@ class RegimeLabel:
     Attributes:
         start: Start date of the core regime period.
         end: End date of the core regime period.
-        regime: One of strong_trend, mild_trend, mean_reversion, crisis.
+        regime: One of long, short.
         direction: One of up, down, neutral.
         driver: Human-readable description of the fundamental driver.
         buffer_start: Start date including the buffer window.

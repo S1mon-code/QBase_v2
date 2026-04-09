@@ -35,7 +35,7 @@ class TestChandelierExitLong:
 
     def test_stop_rises_on_new_highs(self):
         """Long stop must rise (or stay) when price makes new highs."""
-        ce = ChandelierExit(atr_mult=2.0, regime="strong_trend")
+        ce = ChandelierExit(atr_mult=2.0, regime="long")
         stops = []
         for i in range(10):
             h = 100.0 + i * 2
@@ -60,7 +60,7 @@ class TestChandelierExitLong:
 
     def test_initial_stop_correct(self):
         """First bar stop = high - mult*atr for long."""
-        ce = ChandelierExit(atr_mult=3.0, regime="strong_trend")
+        ce = ChandelierExit(atr_mult=3.0, regime="long")
         ce.update(high=105.0, low=100.0, close=103.0, atr=2.0, side=1)
         assert ce.get_stop() == pytest.approx(105.0 - 3.0 * 2.0)
 
@@ -79,7 +79,7 @@ class TestChandelierExitShort:
 
     def test_stop_falls_on_new_lows(self):
         """Short stop must fall (or stay) when price makes new lows."""
-        ce = ChandelierExit(atr_mult=2.0, regime="strong_trend")
+        ce = ChandelierExit(atr_mult=2.0, regime="long")
         stops = []
         for i in range(10):
             h = 102.0 - i * 2
@@ -123,7 +123,7 @@ class TestChandelierExitReset:
 
     def test_new_trade_after_reset(self):
         """After reset, a new trade should start fresh."""
-        ce = ChandelierExit(atr_mult=2.0, regime="strong_trend")
+        ce = ChandelierExit(atr_mult=2.0, regime="long")
         ce.update(100.0, 98.0, 99.0, atr=3.0, side=1)
         first_stop = ce.get_stop()
         ce.reset()
@@ -132,64 +132,23 @@ class TestChandelierExitReset:
         assert ce.get_stop() == pytest.approx(200.0 - 2.0 * 3.0)
 
 
-class TestChandelierExitMeanReversion:
-    """Mean-reversion regime uses entry price, not extremum."""
+class TestChandelierExitShortRegime:
+    """Short regime tests — same trailing stop logic, no special cases."""
 
-    def test_uses_entry_price_long(self):
-        """Mean-reversion long stop based on entry, not highest."""
-        ce = ChandelierExit(atr_mult=2.0, regime="mean_reversion")
+    def test_short_regime_long_stop(self):
+        """Short regime long stop tracks highest - atr_mult * atr."""
+        ce = ChandelierExit(atr_mult=2.0, regime="short")
         ce.update(100.0, 98.0, 99.0, atr=3.0, side=1)
-        entry_stop = ce.get_stop()
-        # Price goes much higher – stop should NOT move up (based on entry).
+        assert ce.get_stop() == pytest.approx(100.0 - 2.0 * 3.0)
+        # Price goes higher – stop should move up.
         ce.update(120.0, 118.0, 119.0, atr=3.0, side=1)
-        assert ce.get_stop() == pytest.approx(entry_stop)
+        assert ce.get_stop() == pytest.approx(120.0 - 2.0 * 3.0)
 
-    def test_uses_entry_price_short(self):
-        """Mean-reversion short stop based on entry, not lowest."""
-        ce = ChandelierExit(atr_mult=2.0, regime="mean_reversion")
+    def test_short_regime_short_stop(self):
+        """Short regime short stop tracks lowest + atr_mult * atr."""
+        ce = ChandelierExit(atr_mult=2.0, regime="short")
         ce.update(100.0, 98.0, 99.0, atr=3.0, side=-1)
-        entry_stop = ce.get_stop()
-        ce.update(80.0, 78.0, 79.0, atr=3.0, side=-1)
-        assert ce.get_stop() == pytest.approx(entry_stop)
-
-
-class TestChandelierExitCrisis:
-    """Crisis regime time-stop tests."""
-
-    def test_crisis_time_stop_triggers(self):
-        """Crisis: N bars without profit -> forced exit."""
-        ce = ChandelierExit(atr_mult=1.5, regime="crisis", crisis_time_stop=5)
-        entry = 100.0
-        # 5 bars of no profit (close at or below entry for long).
-        for i in range(5):
-            ce.update(101.0, 98.0, entry - 0.5, atr=2.0, side=1)
-        assert ce.is_stopped(entry - 0.5, 1)
-
-    def test_crisis_time_stop_no_trigger_if_profitable(self):
-        """Crisis: should NOT trigger if trade was profitable at some point."""
-        ce = ChandelierExit(atr_mult=1.5, regime="crisis", crisis_time_stop=5)
-        ce.update(100.0, 98.0, 99.0, atr=2.0, side=1)
-        # Make it profitable.
-        ce.update(105.0, 103.0, 104.0, atr=2.0, side=1)
-        # Then give back.
-        for _ in range(5):
-            ce.update(100.0, 98.0, 98.5, atr=2.0, side=1)
-        # best_pnl > 0 so time stop should NOT fire.
-        # (price stop may or may not fire – check only time-stop logic)
-        # Use a wide enough stop that price stop doesn't trigger.
-        ce2 = ChandelierExit(atr_mult=100.0, regime="crisis", crisis_time_stop=5)
-        ce2.update(100.0, 98.0, 99.0, atr=2.0, side=1)
-        ce2.update(105.0, 103.0, 104.0, atr=2.0, side=1)
-        for _ in range(5):
-            ce2.update(100.0, 98.0, 98.5, atr=2.0, side=1)
-        assert not ce2.is_stopped(98.5, 1)
-
-    def test_crisis_time_stop_not_before_n_bars(self):
-        """Crisis time stop should not trigger before N bars."""
-        ce = ChandelierExit(atr_mult=100.0, regime="crisis", crisis_time_stop=10)
-        for _ in range(9):
-            ce.update(100.0, 98.0, 98.5, atr=2.0, side=1)
-        assert not ce.is_stopped(98.5, 1)
+        assert ce.get_stop() == pytest.approx(98.0 + 2.0 * 3.0)
 
 
 class TestChandelierExitFlat:
@@ -240,15 +199,15 @@ class TestChandelierExitVectorised:
 class TestChandelierExitDefaults:
     """Default ATR multipliers per regime."""
 
-    def test_default_multiplier_strong_trend(self):
-        ce = ChandelierExit(regime="strong_trend")
+    def test_default_multiplier_long(self):
+        ce = ChandelierExit(regime="long")
         ce.update(100.0, 98.0, 99.0, atr=2.0, side=1)
-        assert ce.get_stop() == pytest.approx(100.0 - 3.0 * 2.0)
+        assert ce.get_stop() == pytest.approx(100.0 - 2.5 * 2.0)
 
-    def test_default_multiplier_mild_trend(self):
-        ce = ChandelierExit(regime="mild_trend")
+    def test_default_multiplier_short(self):
+        ce = ChandelierExit(regime="short")
         ce.update(100.0, 98.0, 99.0, atr=2.0, side=1)
-        assert ce.get_stop() == pytest.approx(100.0 - 2.25 * 2.0)
+        assert ce.get_stop() == pytest.approx(100.0 - 2.5 * 2.0)
 
 
 # ======================================================================

@@ -11,7 +11,7 @@
 ## 数据流
 
 ```
-基本面团队                    历史数据 (AlphaForge V7.2)
+基本面团队                    历史数据 (AlphaForge V7.6.1)
     │                              │
     ▼                              ▼
 Regime 预判               Regime 历史标注
@@ -44,7 +44,7 @@ Regime 预判               Regime 历史标注
     └──────────┬──────────┘
                │
     ┌──────────▼──────────┐
-    │   Execution          │  AlphaForge V7.2 Industrial
+    │   Execution          │  AlphaForge V7.6.1 Industrial
     └─────────────────────┘
 ```
 
@@ -153,7 +153,7 @@ reporting/ ───── indicator_panels (via base_strategy + backtest_runner
 | 组件 | 技术 |
 |------|------|
 | 语言 | Python |
-| 回测引擎 | AlphaForge V7.2 (1505 tests, 95 品种, Industrial 模式) |
+| 回测引擎 | AlphaForge V7.6.1 (1962 tests, 95 品种, Industrial 模式) |
 | 指标计算 | numpy + numba @njit |
 | 优化 | Optuna TPE |
 | 协方差估计 | Ledoit-Wolf (sklearn) |

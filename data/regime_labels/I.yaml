@@ -4,98 +4,98 @@ labeled_by: auto_bry_boschan_up_2026-04-01
 labels:
 - start: '2015-04-10'
   end: '2015-06-11'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2015-02-09'
   buffer_end: '2015-08-10'
   split: train
 - start: '2015-12-10'
   end: '2016-04-23'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2015-10-11'
   buffer_end: '2016-06-22'
   split: train
 - start: '2016-05-25'
   end: '2017-02-21'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2016-03-26'
   buffer_end: '2017-04-22'
   split: train
 - start: '2017-06-13'
   end: '2017-08-22'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2017-04-14'
   buffer_end: '2017-10-21'
   split: train
 - start: '2017-10-30'
   end: '2018-01-09'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2017-08-31'
   buffer_end: '2018-03-10'
   split: train
 - start: '2018-04-16'
   end: '2019-07-19'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2018-02-15'
   buffer_end: '2019-09-17'
   split: train
 - start: '2019-08-29'
   end: '2020-08-18'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2019-06-30'
   buffer_end: '2020-10-17'
   split: train
 - start: '2020-10-26'
   end: '2021-05-12'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2020-08-27'
   buffer_end: '2021-07-11'
   split: train
 - start: '2021-11-18'
   end: '2022-06-02'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2021-09-19'
   buffer_end: '2022-08-01'
   split: oos
 - start: '2022-07-15'
   end: '2023-03-13'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2022-05-16'
   buffer_end: '2023-05-12'
   split: oos
 - start: '2023-05-25'
   end: '2024-01-03'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2023-03-26'
   buffer_end: '2024-03-03'
   split: holdout
 - start: '2024-03-15'
   end: '2024-05-22'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2024-01-15'
   buffer_end: '2024-07-21'
   split: holdout
 - start: '2024-09-23'
   end: '2025-02-21'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2024-07-25'
   buffer_end: '2025-04-22'
   split: holdout
 - start: '2025-04-09'
   end: '2025-09-20'
-  regime: strong_trend
+  regime: long
   direction: up
   buffer_start: '2025-02-08'
   buffer_end: '2025-11-19'

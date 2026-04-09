@@ -102,9 +102,9 @@ STRATEGIES = [
         "regime": "Strong Trend",
         "freq": "2H",
         "version": "v4",
-        "strategy_name": "strong_trend_long_AG_2h_v4",
+        "strategy_name": "long_long_AG_2h_v4",
         "class_name": "StrongTrendLongAG2hV4",
-        "research_path": "research/strong_trend/long/AG/2h/v4_+129.89%",
+        "research_path": "research/long/long/AG/2h/v4_+129.89%",
         "indicators": [
             {"name": "KAMA(55)", "category": "趋势", "color": GOLD,
              "desc": "Kaufman 自适应均线 — 根据效率比率自动调节平滑速度，在趋势中快速跟随，在震荡中减少噪音"},
@@ -124,9 +124,9 @@ STRATEGIES = [
         "regime": "Strong Trend",
         "freq": "1H",
         "version": "v13",
-        "strategy_name": "strong_trend_short_AG_1h_v13",
+        "strategy_name": "long_short_AG_1h_v13",
         "class_name": "StrongTrendShortAG1hV13",
-        "research_path": "research/strong_trend/short/AG/1h/v13_+56.62%",
+        "research_path": "research/long/short/AG/1h/v13_+56.62%",
         "indicators": [
             {"name": "MACD(6,16,5)", "category": "动量", "color": BLUE,
              "desc": "快速 MACD — 短周期参数捕捉1H白银的快速动量反转，MACD线 < 信号线为空头"},
@@ -144,9 +144,9 @@ STRATEGIES = [
         "regime": "Mild Trend",
         "freq": "1H",
         "version": "v23",
-        "strategy_name": "mild_trend_long_I_1h_v23",
+        "strategy_name": "long_long_I_1h_v23",
         "class_name": "MildTrendLongI1hV23",
-        "research_path": "research/mild_trend/long/I/1h/v23_+32.21%",
+        "research_path": "research/long/long/I/1h/v23_+32.21%",
         "indicators": [
             {"name": "Coppock Curve(10,14)", "category": "动量", "color": PURPLE,
              "desc": "Coppock 曲线 — 两个 ROC 的加权移动平均，从零线下方转正为买入信号"},
@@ -164,9 +164,9 @@ STRATEGIES = [
         "regime": "Mild Trend",
         "freq": "2H",
         "version": "v3",
-        "strategy_name": "mild_trend_short_I_2h_v3",
+        "strategy_name": "long_short_I_2h_v3",
         "class_name": "MildTrendShortI2hV3",
-        "research_path": "research/mild_trend/short/I/2h/v3_+21.19%",
+        "research_path": "research/long/short/I/2h/v3_+21.19%",
         "indicators": [
             {"name": "HMA(40)", "category": "趋势", "color": GOLD,
              "desc": "Hull 移动均线 — 加权差值消除滞后，HMA 下降表示短期趋势转空"},
@@ -233,7 +233,7 @@ def create_title_slide(prs):
                  "AG Long  ·  AG Short  ·  I Long  ·  I Short", font_size=16, color=GRAY,
                  alignment=PP_ALIGN.CENTER)
     add_text_box(slide, 0.5, 5.0, 9.0, 0.8,
-                 "AlphaForge V7.2 Industrial Mode  |  2026-04-03",
+                 "AlphaForge V7.6.1 Industrial Mode  |  2026-04-03",
                  font_size=12, color=GRAY, alignment=PP_ALIGN.CENTER)
 
 

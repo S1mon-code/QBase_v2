@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from validation.thresholds import get_thresholds
+
 
 @dataclass(frozen=True)
 class StressTestResult:
@@ -43,9 +45,10 @@ def check_slippage_sensitivity(
     else:
         decay_pct = (base_sharpe - doubled_sharpe) / abs(base_sharpe) * 100.0
 
-    if decay_pct < 15.0:
+    cfg = get_thresholds()["stress"]
+    if decay_pct < cfg["normal_max_decay_pct"]:
         level = "LOW"
-    elif decay_pct < 30.0:
+    elif decay_pct < cfg["warning_max_decay_pct"]:
         level = "MODERATE"
     else:
         level = "HIGH"

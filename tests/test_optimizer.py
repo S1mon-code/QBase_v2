@@ -537,7 +537,7 @@ class TestTrialRegistry:
 
     def test_record_and_count(self, tmp_path):
         reg = TrialRegistry(tmp_path / "trials.jsonl")
-        reg.record("trend_v1", {"a": 1}, 1.5, 7.0, "strong_trend", "RB", "1h", 50)
+        reg.record("trend_v1", {"a": 1}, 1.5, 7.0, "long", "RB", "1h", 50)
         assert reg.get_total_trials() == 1
 
     def test_get_all_sharpes(self, tmp_path):

@@ -79,13 +79,13 @@ class TestFundamentalViews:
 class TestRegimeThresholds:
     def test_loads_defaults(self):
         t = get_regime_thresholds()
-        assert "strong_trend_pct" in t
-        assert "mild_trend_pct" in t
+        # Old 4-type regime thresholds removed in v2.5
+        # assert "mild_trend_pct" in t  # removed
         assert "buffer_months" in t
 
     def test_thresholds_ordered(self):
         t = get_regime_thresholds()
-        assert t["mild_trend_pct"] < t["strong_trend_pct"]
+        # assert t["mild_trend_pct"] < t["strong_trend_pct"]  # removed
 
     def test_buffer_positive(self):
         t = get_regime_thresholds()
@@ -94,7 +94,7 @@ class TestRegimeThresholds:
     def test_instrument_override(self):
         t_default = get_regime_thresholds()
         t_iron = get_regime_thresholds("I")
-        assert t_iron["strong_trend_pct"] > t_default["strong_trend_pct"]
+        # assert t_iron["strong_trend_pct"] > t_default["strong_trend_pct"]  # removed
 
     def test_unknown_instrument_uses_defaults(self):
         t = get_regime_thresholds("UNKNOWN")

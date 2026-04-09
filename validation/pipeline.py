@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from validation.thresholds import get_thresholds
 from validation.deflated_sharpe import deflated_sharpe_ratio
 from validation.industrial_check import IndustrialResult, check_industrial_decay
 from validation.monte_carlo import BootstrapResult, bootstrap_test
@@ -132,7 +133,8 @@ def run_validation_pipeline(
         dsr_value = deflated_sharpe_ratio(
             observed_sharpe, n_trials, sharpe_std, n_obs, skew, kurt
         )
-        if dsr_value < 0.95:
+        dsr_cfg = get_thresholds()["deflated_sharpe"]
+        if dsr_value < dsr_cfg["low_threshold"]:
             soft_flags.append("deflated_sharpe_low")
 
     # Layer 5a: Bootstrap

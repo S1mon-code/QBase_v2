@@ -54,7 +54,7 @@ def sample_label() -> RegimeLabel:
     return RegimeLabel(
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
-        regime="strong_trend",
+        regime="long",
         direction="up",
         driver="test driver",
         buffer_start=date(2019, 11, 1),
@@ -85,7 +85,7 @@ def label_yaml_path(tmp_path) -> Path:
             {
                 "start": "2015-06-01",
                 "end": "2016-02-28",
-                "regime": "strong_trend",
+                "regime": "long",
                 "direction": "up",
                 "driver": "供给侧改革",
                 "buffer_start": "2015-04-01",
@@ -95,14 +95,14 @@ def label_yaml_path(tmp_path) -> Path:
             {
                 "start": "2020-11-01",
                 "end": "2021-05-31",
-                "regime": "strong_trend",
+                "regime": "long",
                 "direction": "up",
                 "split": "oos",
             },
             {
                 "start": "2024-01-01",
                 "end": "2024-08-31",
-                "regime": "mean_reversion",
+                "regime": "short",
                 "direction": "neutral",
                 "split": "holdout",
             },
@@ -138,10 +138,10 @@ class TestRegimeLabel:
         lbl = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 3, 31),
-            regime="mild_trend",
+            regime="short",
             direction="down",
         )
-        assert lbl.regime == "mild_trend"
+        assert lbl.regime == "short"
         assert lbl.driver == ""
         assert lbl.buffer_start is None
         assert lbl.split == "train"
@@ -155,7 +155,7 @@ class TestRegimeLabel:
     def test_frozen(self, sample_label):
         """Labels are immutable (frozen dataclass)."""
         with pytest.raises(AttributeError):
-            sample_label.regime = "crisis"
+            sample_label.regime = "short"
 
 
 class TestRegimeConfig:
@@ -182,7 +182,7 @@ class TestLoadLabels:
         cfg = load_labels(label_yaml_path)
         assert cfg.instrument == "I"
         assert len(cfg.labels) == 3
-        assert cfg.labels[0].regime == "strong_trend"
+        assert cfg.labels[0].regime == "long"
         assert cfg.labels[0].driver == "供给侧改革"
 
     def test_load_dates_parsed(self, label_yaml_path):
@@ -235,7 +235,7 @@ class TestSaveLabels:
         lbl = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            regime="strong_trend",
+            regime="long",
             direction="up",
             driver="供给侧改革",
         )
@@ -277,7 +277,7 @@ class TestValidateLabels:
         lbl = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            regime="crisis",
+            regime="short",
             direction="sideways",
         )
         cfg = RegimeConfig(instrument="RB", labels=(lbl,))
@@ -289,7 +289,7 @@ class TestValidateLabels:
         lbl = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            regime="crisis",
+            regime="short",
             direction="up",
             split="validation",
         )
@@ -302,7 +302,7 @@ class TestValidateLabels:
         lbl = RegimeLabel(
             start=date(2020, 6, 30),
             end=date(2020, 1, 1),
-            regime="crisis",
+            regime="short",
             direction="down",
         )
         cfg = RegimeConfig(instrument="RB", labels=(lbl,))
@@ -314,7 +314,7 @@ class TestValidateLabels:
         lbl = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            regime="mild_trend",
+            regime="short",
             direction="up",
             buffer_start=date(2020, 3, 1),
         )
@@ -327,7 +327,7 @@ class TestValidateLabels:
         lbl = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            regime="mild_trend",
+            regime="short",
             direction="up",
             buffer_end=date(2020, 3, 1),
         )
@@ -340,13 +340,13 @@ class TestValidateLabels:
         lbl1 = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            regime="strong_trend",
+            regime="long",
             direction="up",
         )
         lbl2 = RegimeLabel(
             start=date(2020, 5, 1),
             end=date(2020, 12, 31),
-            regime="mild_trend",
+            regime="short",
             direction="down",
         )
         cfg = RegimeConfig(instrument="RB", labels=(lbl1, lbl2))
@@ -358,13 +358,13 @@ class TestValidateLabels:
         lbl1 = RegimeLabel(
             start=date(2020, 1, 1),
             end=date(2020, 5, 31),
-            regime="strong_trend",
+            regime="long",
             direction="up",
         )
         lbl2 = RegimeLabel(
             start=date(2020, 6, 1),
             end=date(2020, 12, 31),
-            regime="mild_trend",
+            regime="short",
             direction="down",
         )
         cfg = RegimeConfig(instrument="RB", labels=(lbl1, lbl2))
@@ -468,8 +468,8 @@ class TestAutoLabel:
     def _default_config(self) -> dict:
         """Return a config dict for testing without loading YAML."""
         return {
-            "strong_trend_pct": 0.20,
-            "mild_trend_pct": 0.05,
+            "direction_threshold": 0.0,  # simplified: any trend = long/short
+            
             "crisis_atr_sigma": 3.0,
             "min_duration_months": 1,
             "buffer_months": 2,
@@ -489,7 +489,7 @@ class TestAutoLabel:
         assert result == []
 
     def test_uptrend(self):
-        """Strong uptrend should produce a strong_trend label."""
+        """Strong uptrend should produce a long label."""
         n = 360  # ~1 year of trading days
         dates = _make_dates(date(2019, 1, 1), n)
         # W shape: drop, rise, drop, strong rise
@@ -502,10 +502,10 @@ class TestAutoLabel:
         cfg = self._default_config()
         labels = auto_label(prices, dates, config=cfg)
         regimes = [lbl.regime for lbl in labels]
-        assert "strong_trend" in regimes
+        assert "long" in regimes
 
     def test_downtrend(self):
-        """Strong downtrend should produce a strong_trend down label."""
+        """Strong downtrend should produce a short label."""
         n = 360
         dates = _make_dates(date(2019, 1, 1), n)
         # Inverse W: rise, drop, rise, strong drop
@@ -520,8 +520,8 @@ class TestAutoLabel:
         directions = [lbl.direction for lbl in labels]
         assert "down" in directions
 
-    def test_flat_produces_mean_reversion(self):
-        """Flat price series should produce mean_reversion labels."""
+    def test_flat_produces_labels(self):
+        """Flat price series should produce long/short labels."""
         n = 180
         dates = _make_dates(date(2020, 1, 1), n)
         # Small oscillation: ±2%
@@ -532,8 +532,8 @@ class TestAutoLabel:
         labels = auto_label(prices, dates, config=cfg)
         if labels:
             regimes = {lbl.regime for lbl in labels}
-            # With small oscillations the moves should be small
-            assert "mean_reversion" in regimes or "mild_trend" in regimes
+            # With small oscillations should still classify as long or short
+            assert regimes <= {"long", "short"}
 
     def test_labels_have_buffers(self):
         """All labels should have buffer dates."""
@@ -585,8 +585,8 @@ class TestAutoLabel:
         for lbl in labels:
             assert isinstance(lbl.start, date)
 
-    def test_crisis_spike(self):
-        """An extreme volatility spike should be detectable."""
+    def test_volatile_period_produces_labels(self):
+        """A volatile period should still produce long/short labels."""
         n = 200
         dates = _make_dates(date(2020, 1, 1), n)
         rng = np.random.RandomState(42)
@@ -594,11 +594,11 @@ class TestAutoLabel:
         # Insert a huge spike
         prices[90:110] = 100 + rng.randn(20) * 50
         cfg = self._default_config()
-        cfg["crisis_atr_sigma"] = 2.0  # lower threshold for test
         labels = auto_label(prices, dates, config=cfg)
-        # May or may not detect crisis depending on exact random values
-        # but should produce some labels
+        # Should produce some labels (all long or short)
         assert isinstance(labels, list)
+        for lbl in labels:
+            assert lbl.regime in {"long", "short"}
 
 
 # ===================================================================
@@ -624,7 +624,7 @@ class TestMatcher:
                 {
                     "start": "2015-06-01",
                     "end": "2016-02-28",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "buffer_start": "2015-04-01",
                     "buffer_end": "2016-04-30",
@@ -633,7 +633,7 @@ class TestMatcher:
                 {
                     "start": "2018-01-01",
                     "end": "2018-06-30",
-                    "regime": "mild_trend",
+                    "regime": "short",
                     "direction": "down",
                     "buffer_start": "2017-11-01",
                     "buffer_end": "2018-08-31",
@@ -642,7 +642,7 @@ class TestMatcher:
                 {
                     "start": "2020-11-01",
                     "end": "2021-05-31",
-                    "regime": "strong_trend",
+                    "regime": "long",
                     "direction": "up",
                     "buffer_start": "2020-09-01",
                     "buffer_end": "2021-07-31",
@@ -651,7 +651,7 @@ class TestMatcher:
                 {
                     "start": "2023-01-01",
                     "end": "2023-06-30",
-                    "regime": "mean_reversion",
+                    "regime": "short",
                     "direction": "neutral",
                     "buffer_start": "2022-11-01",
                     "buffer_end": "2023-08-31",
@@ -667,60 +667,60 @@ class TestMatcher:
         return labels_dir
 
     def test_filter_by_regime(self, tmp_path, monkeypatch):
-        """Filter strong_trend returns correct periods."""
+        """Filter long returns correct periods."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_regime_periods("I", "strong_trend")
+        periods = get_regime_periods("I", "long")
         assert len(periods) == 2
 
     def test_filter_by_regime_and_direction(self, tmp_path, monkeypatch):
         """Filter by both regime and direction."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_regime_periods("I", "mild_trend", direction="down")
+        periods = get_regime_periods("I", "short", direction="down")
         assert len(periods) == 1
         assert periods[0] == (date(2017, 11, 1), date(2018, 8, 31))
 
     def test_filter_by_split(self, tmp_path, monkeypatch):
         """Filter by split."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_regime_periods("I", "strong_trend", split="oos")
+        periods = get_regime_periods("I", "long", split="oos")
         assert len(periods) == 1
         assert periods[0][0] == date(2020, 9, 1)
 
     def test_get_train_periods(self, tmp_path, monkeypatch):
         """get_train_periods shortcut works."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_train_periods("I", "strong_trend")
+        periods = get_train_periods("I", "long")
         assert len(periods) == 1
         assert periods[0][0] == date(2015, 4, 1)
 
     def test_get_oos_periods(self, tmp_path, monkeypatch):
         """get_oos_periods shortcut works."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_oos_periods("I", "strong_trend")
+        periods = get_oos_periods("I", "long")
         assert len(periods) == 1
 
     def test_get_holdout_periods(self, tmp_path, monkeypatch):
         """get_holdout_periods shortcut works."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_holdout_periods("I", "mean_reversion")
+        periods = get_holdout_periods("I", "short")
         assert len(periods) == 1
 
     def test_no_match_returns_empty(self, tmp_path, monkeypatch):
         """Non-matching filter returns empty list."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_regime_periods("I", "crisis")
+        periods = get_regime_periods("I", "long", direction="neutral")
         assert periods == []
 
     def test_nonexistent_instrument(self, tmp_path, monkeypatch):
         """Missing instrument file raises FileNotFoundError."""
         self._setup_labels_dir(tmp_path, monkeypatch)
         with pytest.raises(FileNotFoundError):
-            get_regime_periods("NONEXISTENT", "strong_trend")
+            get_regime_periods("NONEXISTENT", "long")
 
     def test_returns_buffer_dates(self, tmp_path, monkeypatch):
         """Returned periods use buffer dates, not core dates."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_regime_periods("I", "strong_trend", split="train")
+        periods = get_regime_periods("I", "long", split="train")
         # buffer_start=2015-04-01, not core start=2015-06-01
         assert periods[0][0] == date(2015, 4, 1)
         assert periods[0][1] == date(2016, 4, 30)
@@ -728,15 +728,15 @@ class TestMatcher:
     def test_periods_sorted(self, tmp_path, monkeypatch):
         """Returned periods are sorted by start date."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        periods = get_regime_periods("I", "strong_trend")
+        periods = get_regime_periods("I", "long")
         for i in range(len(periods) - 1):
             assert periods[i][0] <= periods[i + 1][0]
 
     def test_direction_filter_none_returns_all(self, tmp_path, monkeypatch):
         """direction=None does not filter."""
         self._setup_labels_dir(tmp_path, monkeypatch)
-        all_st = get_regime_periods("I", "strong_trend", direction=None)
-        up_only = get_regime_periods("I", "strong_trend", direction="up")
+        all_st = get_regime_periods("I", "long", direction=None)
+        up_only = get_regime_periods("I", "long", direction="up")
         assert len(all_st) >= len(up_only)
 
     def test_labels_without_buffer_fallback(self, tmp_path, monkeypatch):
@@ -753,7 +753,7 @@ class TestMatcher:
                 {
                     "start": "2020-01-01",
                     "end": "2020-06-30",
-                    "regime": "mild_trend",
+                    "regime": "short",
                     "direction": "up",
                     "split": "train",
                 },
@@ -763,5 +763,5 @@ class TestMatcher:
             yaml.dump(content, f, sort_keys=False)
         monkeypatch.setattr(matcher_mod, "_LABELS_DIR", labels_dir)
 
-        periods = get_regime_periods("RB", "mild_trend")
+        periods = get_regime_periods("RB", "short")
         assert periods[0] == (date(2020, 1, 1), date(2020, 6, 30))

@@ -18,7 +18,7 @@ STRATEGIES_DIR = os.path.join(PROJECT, "strategies")
 RESEARCH_DIR = os.path.join(PROJECT, "research")
 
 REQUIRED_RESEARCH_FILES = ["params.yaml", "validation.yaml", "attribution.md", "train.html", "oos.html"]
-REGIMES = ["mild_trend", "strong_trend", "mean_reversion", "crisis"]
+REGIMES = ["long", "short"]
 DIRECTIONS = ["long", "short"]
 TIMEFRAMES = ["daily", "1h", "2h", "4h"]
 
@@ -31,19 +31,9 @@ def discover_strategies() -> list[dict]:
         if not os.path.exists(regime_dir):
             continue
 
-        if regime == "mean_reversion":
-            # No direction layer
-            for instrument in _listdir(regime_dir):
-                for tf in _listdir(os.path.join(regime_dir, instrument)):
-                    _scan_tf(strategies, regime, "both", instrument, tf)
-        else:
-            for direction in DIRECTIONS:
-                dir_path = os.path.join(regime_dir, direction)
-                if not os.path.exists(dir_path):
-                    continue
-                for instrument in _listdir(dir_path):
-                    for tf in _listdir(os.path.join(dir_path, instrument)):
-                        _scan_tf(strategies, regime, direction, instrument, tf)
+        for instrument in _listdir(regime_dir):
+            for tf in _listdir(os.path.join(regime_dir, instrument)):
+                _scan_tf(strategies, regime, regime, instrument, tf)
 
     return strategies
 

@@ -10,6 +10,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from validation.thresholds import get_thresholds
+from validation.utils import compute_sharpe as _compute_sharpe
+
 
 @dataclass(frozen=True)
 class BootstrapResult:
@@ -22,17 +25,6 @@ class BootstrapResult:
     maxdd_median: float
     maxdd_95th: float
     verdict: str  # "ROBUST" / "ACCEPTABLE" / "FRAGILE"
-
-
-def _compute_sharpe(returns: np.ndarray) -> float:
-    """Compute annualized Sharpe ratio from daily returns."""
-    if len(returns) == 0:
-        return 0.0
-    mean_ret = np.mean(returns)
-    std_ret = np.std(returns, ddof=1)
-    if std_ret == 0.0:
-        return 0.0
-    return float(mean_ret / std_ret * np.sqrt(252))
 
 
 def _compute_max_drawdown(returns: np.ndarray) -> float:
@@ -97,7 +89,8 @@ def bootstrap_test(
     maxdd_median = float(np.median(maxdds))
     maxdd_95th = float(np.percentile(maxdds, 95))
 
-    if sharpe_ci_lower > 0.0:
+    cfg = get_thresholds()["bootstrap"]
+    if sharpe_ci_lower > cfg["ci_lower_bound"]:
         verdict = "ROBUST"
     elif sharpe_mean > 0.0:
         verdict = "ACCEPTABLE"

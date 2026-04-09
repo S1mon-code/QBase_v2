@@ -16,7 +16,7 @@ class RegimeAlert:
     Attributes
     ----------
     assigned_regime : str
-        The regime label set by fundamental analysis.
+        The regime label set by fundamental analysis (``"long"`` or ``"short"``).
     detected_behavior : str
         Description of what the market is actually doing.
     severity : str
@@ -42,8 +42,7 @@ def check_regime_consistency(
     Parameters
     ----------
     assigned_regime : str
-        Current regime label (e.g. ``"strong_trend"``, ``"mild_trend"``,
-        ``"mean_reversion"``, ``"crisis"``).
+        Current regime label (``"long"`` or ``"short"``).
     recent_volatility_pctl : float
         ATR percentile rank over lookback (0-100).
     recent_trend_strength : float
@@ -60,72 +59,57 @@ def check_regime_consistency(
     --------
     Mismatches detected:
 
-    - Assigned ``mild_trend`` but vol > 90th percentile -> possible crisis.
-    - Assigned ``mean_reversion`` but return > 15% -> possible trend.
-    - Assigned ``strong_trend`` but ADX < 15 -> possibly ranging.
-    - Assigned ``crisis`` but vol < 30th percentile and ADX < 20 -> possibly calm.
+    - Assigned ``long`` but large negative return -> market moving against regime.
+    - Assigned ``short`` but large positive return -> market moving against regime.
+    - Extreme volatility (> 90th percentile) -> warning regardless of regime.
     """
     regime = assigned_regime.lower()
 
-    # Mild trend but extremely high volatility -> could be crisis
-    if regime in ("mild_trend", "mean_reversion") and recent_volatility_pctl > 90:
+    # Extreme volatility warning for any regime
+    if recent_volatility_pctl > 90:
         return RegimeAlert(
             assigned_regime=assigned_regime,
             detected_behavior="extreme_volatility",
             severity="critical",
             message=(
                 f"Assigned '{assigned_regime}' but volatility at {recent_volatility_pctl:.0f}th "
-                f"percentile. Market behaviour suggests possible crisis regime."
+                f"percentile. Consider reducing position size."
             ),
         )
 
-    # Mean reversion but large directional move
-    if regime == "mean_reversion" and abs(recent_return_pct) > 15:
+    # Long regime but market dropping significantly
+    if regime == "long" and recent_return_pct < -10:
         return RegimeAlert(
             assigned_regime=assigned_regime,
-            detected_behavior="strong_directional_move",
+            detected_behavior="against_regime",
             severity="warning",
             message=(
-                f"Assigned 'mean_reversion' but recent return is "
-                f"{recent_return_pct:+.1f}%. Market may be trending."
+                f"Assigned 'long' but recent return is "
+                f"{recent_return_pct:+.1f}%. Market moving against regime."
             ),
         )
 
-    # Strong trend but very weak trend strength
-    if regime == "strong_trend" and recent_trend_strength < 15:
+    # Short regime but market rallying significantly
+    if regime == "short" and recent_return_pct > 10:
+        return RegimeAlert(
+            assigned_regime=assigned_regime,
+            detected_behavior="against_regime",
+            severity="warning",
+            message=(
+                f"Assigned 'short' but recent return is "
+                f"{recent_return_pct:+.1f}%. Market moving against regime."
+            ),
+        )
+
+    # Weak trend strength warning
+    if recent_trend_strength < 15:
         return RegimeAlert(
             assigned_regime=assigned_regime,
             detected_behavior="weak_trend",
-            severity="warning",
-            message=(
-                f"Assigned 'strong_trend' but ADX/trend strength is "
-                f"{recent_trend_strength:.1f} (< 15). Market may be ranging."
-            ),
-        )
-
-    # Mild trend but very strong trend
-    if regime == "mild_trend" and recent_trend_strength > 40 and abs(recent_return_pct) > 10:
-        return RegimeAlert(
-            assigned_regime=assigned_regime,
-            detected_behavior="possible_strong_trend",
             severity="info",
             message=(
-                f"Assigned 'mild_trend' but trend strength is "
-                f"{recent_trend_strength:.1f} with return {recent_return_pct:+.1f}%. "
-                f"Consider upgrading to strong_trend."
-            ),
-        )
-
-    # Crisis but calm market
-    if regime == "crisis" and recent_volatility_pctl < 30 and recent_trend_strength < 20:
-        return RegimeAlert(
-            assigned_regime=assigned_regime,
-            detected_behavior="calm_market",
-            severity="warning",
-            message=(
-                f"Assigned 'crisis' but volatility at {recent_volatility_pctl:.0f}th "
-                f"percentile and trend strength {recent_trend_strength:.1f}. "
-                f"Market appears calm."
+                f"Assigned '{assigned_regime}' but trend strength is "
+                f"{recent_trend_strength:.1f} (< 15). Market may be ranging."
             ),
         )
 

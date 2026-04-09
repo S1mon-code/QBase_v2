@@ -4,11 +4,11 @@ Usage examples::
 
     python -m pipeline.cli label I --visualize
     python -m pipeline.cli run trend_medium_v1 --symbol RB --freq 1h
-    python -m pipeline.cli optimize trend_medium_v1 --symbol RB --regime strong_trend
+    python -m pipeline.cli optimize trend_medium_v1 --symbol RB --regime long
     python -m pipeline.cli validate trend_medium_v1 --all
     python -m pipeline.cli attribute trend_medium_v1 --symbol RB
-    python -m pipeline.cli portfolio build --symbol RB --regime strong_trend
-    python -m pipeline.cli pipeline --symbol RB --regime strong_trend --direction up
+    python -m pipeline.cli portfolio build --symbol RB --regime long
+    python -m pipeline.cli pipeline --symbol RB --regime long --direction up
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def create_parser() -> argparse.ArgumentParser:
     opt_parser.add_argument("strategy", help="Strategy file or name")
     opt_parser.add_argument("--symbol", required=True)
     opt_parser.add_argument("--freq", default="1h")
-    opt_parser.add_argument("--regime", default="strong_trend")
+    opt_parser.add_argument("--regime", default="long")
     opt_parser.add_argument("--direction", default="up")
     opt_parser.add_argument("--trials", type=int, default=80)
     opt_parser.add_argument("--multi-seed", action="store_true")
@@ -85,7 +85,7 @@ def create_parser() -> argparse.ArgumentParser:
     pipe_parser = subparsers.add_parser("pipeline", help="Run full pipeline")
     pipe_parser.add_argument("--symbol", required=True)
     pipe_parser.add_argument("--freq", default="1h")
-    pipe_parser.add_argument("--regime", default="strong_trend")
+    pipe_parser.add_argument("--regime", default="long")
     pipe_parser.add_argument("--direction", default="up")
     pipe_parser.add_argument("--trials", type=int, default=80)
 
@@ -118,7 +118,7 @@ def _handle_label(args: argparse.Namespace) -> int:
     from regime.matcher import get_regime_periods
 
     try:
-        periods = get_regime_periods(args.instrument, "strong_trend")
+        periods = get_regime_periods(args.instrument, "long")
     except FileNotFoundError as exc:
         print(f"Error: {exc}")
         return 1
@@ -164,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
     # Commands that require AlphaForge connection
     print(
         f"Command '{args.command}' received. "
-        "Connect to AlphaForge V6.0 to execute."
+        "Connect to AlphaForge V7.6.1 to execute."
     )
     return 0
 

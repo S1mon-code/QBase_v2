@@ -1,0 +1,37 @@
+# Validation thresholds — single source of truth for all validation layers.
+# Change these values instead of editing validation/*.py code.
+
+regime_cv:
+  pass_min_sharpe: 0.3
+  pass_min_win_rate: 0.5
+  marginal_min_win_rate: 0.33
+
+oos:
+  suspected_overfit_ratio: 0.5      # oos/is sharpe ratio below this = suspected overfit
+  behavior_anomaly_freq_ratio: 3.0  # trade frequency ratio threshold
+  behavior_anomaly_hold_ratio: 3.0  # hold time ratio threshold
+  oos_biased_high_ratio: 1.5        # oos/is ratio above this = suspiciously good
+
+walk_forward:
+  pass_min_win_rate: 0.5
+
+deflated_sharpe:
+  low_threshold: 0.95
+
+bootstrap:
+  ci_lower_bound: 0.0               # Sharpe CI lower bound for ROBUST verdict
+  min_samples: 30
+
+permutation:
+  significant_pvalue: 0.05
+  marginal_pvalue: 0.10
+  min_samples: 30
+
+industrial:
+  normal_max_decay_pct: 10.0
+  acceptable_max_decay_pct: 30.0
+  warning_max_decay_pct: 50.0       # above this = hard reject
+
+stress:
+  normal_max_decay_pct: 15.0
+  warning_max_decay_pct: 30.0

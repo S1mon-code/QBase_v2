@@ -50,14 +50,14 @@ PORTFOLIO = [
     {
         'key': 'daily_v27',
         'freq': 'daily',
-        'module': 'strategies.strong_trend.long.I.daily.trend_medium_v27',
+        'module': 'strategies.long.I.daily.trend_medium_v27',
         'risk_share': DAILY_RISK_SHARE,
         'sizing_mode': 'continuous',
     },
     {
         'key': '1h_v18',
         'freq': '1h',
-        'module': 'strategies.strong_trend.long.I.1h.v18',
+        'module': 'strategies.long.I.1h.v18',
         'risk_share': HOURLY_RISK_SHARE,
         'sizing_mode': 'fixed_entry',
     },
@@ -202,7 +202,7 @@ def main():
                 break
 
         # Load optimized params
-        research_base = _PROJECT_ROOT / 'research' / 'strong_trend' / 'long' / 'I' / freq
+        research_base = _PROJECT_ROOT / 'research' / 'long' / 'long' / 'I' / freq
         params = {}
         for vdir in research_base.iterdir():
             if vdir.is_dir() and vdir.name.startswith(key.split('_')[-1] + '_'):
@@ -359,7 +359,7 @@ def main():
     per_strategy_equity = {}
     strategy_links = {}
 
-    report_dir = _PROJECT_ROOT / 'reports' / 'strong_trend' / 'long' / 'I'
+    report_dir = _PROJECT_ROOT / 'reports' / 'long' / 'long' / 'I'
     report_dir.mkdir(parents=True, exist_ok=True)
     for f in report_dir.glob('*.html'):
         f.unlink()
@@ -380,7 +380,7 @@ def main():
                 break
 
         # Load params
-        research_base = _PROJECT_ROOT / 'research' / 'strong_trend' / 'long' / 'I' / freq
+        research_base = _PROJECT_ROOT / 'research' / 'long' / 'long' / 'I' / freq
         params = {}
         for vdir in research_base.iterdir():
             if vdir.is_dir() and vdir.name.startswith(key.split('_')[-1] + '_'):
@@ -470,13 +470,13 @@ def main():
 
     # ── Save config ───────────────────────────────────────────────────────
 
-    config_dir = _PROJECT_ROOT / 'portfolio' / 'strong_trend' / 'long' / 'I'
+    config_dir = _PROJECT_ROOT / 'portfolio' / 'long' / 'long' / 'I'
     config_dir.mkdir(parents=True, exist_ok=True)
 
     config_data = {
         'instrument': INSTRUMENT,
         'direction': 'long',
-        'regime': 'strong_trend',
+        'regime': 'long',
         'initial_capital': INITIAL_CAPITAL,
         'target_vol': TARGET_VOL,
         'result': {

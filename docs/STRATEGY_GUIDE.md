@@ -194,5 +194,5 @@ research/{regime}/{direction}/{instrument}/{timeframe}/v{N}_{+/-}{return}%/
 | 完整开发流程 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) |
 | 准入标准 & 禁止事项 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) |
 | Portfolio 构建 & Regime 激活 | [PORTFOLIO.md](PORTFOLIO.md) |
-| AlphaForge V7.2 API | [ALPHAFORGE_API.md](ALPHAFORGE_API.md) |
+| AlphaForge V7.6.1 API | [ALPHAFORGE_API.md](ALPHAFORGE_API.md) |
 | 系统架构 | [architecture.md](architecture.md) |

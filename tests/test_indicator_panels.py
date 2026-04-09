@@ -341,7 +341,7 @@ class TestStrategyPanels:
 
     def test_v1_overlay_and_subplot(self, arrays):
         """v1 has EMA overlays + RSI subplot."""
-        V1Class = _load_strategy_class("strategies.strong_trend.long.I.1h.v1")
+        V1Class = _load_strategy_class("strategies.long.I.1h.v1")
 
         s = V1Class()
         _init_strategy(s, arrays)
@@ -361,7 +361,7 @@ class TestStrategyPanels:
 
     def test_v3_pure_subplots(self, arrays):
         """v3 (MACD + CMF) has no overlays, only subplots."""
-        V3Class = _load_strategy_class("strategies.strong_trend.long.I.1h.v3")
+        V3Class = _load_strategy_class("strategies.long.I.1h.v3")
 
         s = V3Class()
         _init_strategy(s, arrays)
@@ -377,7 +377,7 @@ class TestStrategyPanels:
 
     def test_v7_bollinger_overlay(self, arrays):
         """v7 has Bollinger Bands overlays."""
-        V7Class = _load_strategy_class("strategies.strong_trend.long.I.1h.v7")
+        V7Class = _load_strategy_class("strategies.long.I.1h.v7")
 
         s = V7Class()
         _init_strategy(s, arrays)
@@ -400,7 +400,7 @@ class TestPanelDataFormat:
     def sample_panels(self):
         """Get panels from v1 strategy as a representative sample."""
         arrays = _make_arrays(n=200)
-        V1Class = _load_strategy_class("strategies.strong_trend.long.I.1h.v1")
+        V1Class = _load_strategy_class("strategies.long.I.1h.v1")
 
         s = V1Class()
         _init_strategy(s, arrays)
@@ -530,7 +530,7 @@ class TestInjectIndicatorPanels:
         from pipeline.backtest_runner import _inject_indicator_panels
 
         arrays = _make_arrays(n=200)
-        V1Class = _load_strategy_class("strategies.strong_trend.long.I.1h.v1")
+        V1Class = _load_strategy_class("strategies.long.I.1h.v1")
 
         s = V1Class()
         _init_strategy(s, arrays)

@@ -1,4 +1,4 @@
-"""Connect QBase strategies to AlphaForge V7.2 backtesting engine.
+"""Connect QBase strategies to AlphaForge V7.6.1 backtesting engine.
 
 Usage:
     from pipeline.backtest_runner import run_qbase_backtest, run_on_regime_periods

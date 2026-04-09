@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from validation.thresholds import get_thresholds
+
 
 @dataclass(frozen=True)
 class RegimeCVResult:
@@ -27,14 +29,12 @@ class RegimeCVResult:
 def regime_cv_verdict(mean_sharpe: float, win_rate: float) -> str:
     """Determine regime CV verdict from mean Sharpe and win rate.
 
-    Returns:
-        "PASS" if mean_sharpe > 0.3 and win_rate >= 0.5
-        "MARGINAL" if mean_sharpe > 0 and win_rate >= 0.33
-        "FAIL" otherwise
+    Thresholds are loaded from validation/config.yaml.
     """
-    if mean_sharpe > 0.3 and win_rate >= 0.5:
+    cfg = get_thresholds()["regime_cv"]
+    if mean_sharpe > cfg["pass_min_sharpe"] and win_rate >= cfg["pass_min_win_rate"]:
         return "PASS"
-    if mean_sharpe > 0.0 and win_rate >= 0.33:
+    if mean_sharpe > 0.0 and win_rate >= cfg["marginal_min_win_rate"]:
         return "MARGINAL"
     return "FAIL"
 

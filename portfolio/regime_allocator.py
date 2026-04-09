@@ -22,14 +22,13 @@ def get_active_regime(instrument: str) -> dict:
     dict
         A dict with keys ``"direction"`` and ``"regime"``.
         Direction is one of ``"long"``, ``"short"``, ``"neutral"``.
-        Regime is one of ``"strong_trend"``, ``"mild_trend"``,
-        ``"mean_reversion"``, ``"crisis"``.
+        Regime is one of ``"long"``, ``"short"``.
     """
     views = get_fundamental_views()
     instrument_view = views.get(instrument, {})
     return {
         "direction": instrument_view.get("direction", "neutral"),
-        "regime": instrument_view.get("regime", "mild_trend"),
+        "regime": instrument_view.get("regime", "long"),
     }
 
 
@@ -39,13 +38,11 @@ def get_position_multiplier(regime: str) -> float:
     Parameters
     ----------
     regime : str
-        Current regime label.
+        Current regime label (``"long"`` or ``"short"``).
 
     Returns
     -------
     float
-        0.5 for ``"crisis"``, 1.0 for all other regimes.
+        1.0 for both long and short regimes.
     """
-    if regime == "crisis":
-        return 0.5
     return 1.0

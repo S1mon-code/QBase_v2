@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from validation.thresholds import get_thresholds
+
 
 @dataclass(frozen=True)
 class IndustrialResult:
@@ -43,11 +45,12 @@ def check_industrial_decay(
     else:
         decay_pct = (basic_sharpe - industrial_sharpe) / abs(basic_sharpe) * 100.0
 
-    if decay_pct < 10.0:
+    cfg = get_thresholds()["industrial"]
+    if decay_pct < cfg["normal_max_decay_pct"]:
         verdict = "normal"
-    elif decay_pct < 30.0:
+    elif decay_pct < cfg["acceptable_max_decay_pct"]:
         verdict = "acceptable"
-    elif decay_pct < 50.0:
+    elif decay_pct < cfg["warning_max_decay_pct"]:
         verdict = "warning"
     else:
         verdict = "unreliable"

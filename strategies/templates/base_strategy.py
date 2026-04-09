@@ -23,7 +23,7 @@ class QBaseStrategy(ABC):
     """Base class for all QBase_v2 strategies.
 
     Subclasses must define:
-        name            -- Unique strategy identifier (e.g. "strong_trend_long_iron_daily_v1").
+        name            -- Unique strategy identifier (e.g. "long_I_daily_v1").
         regime          -- "trending" or "mean_reversion".
         horizon         -- "fast", "medium", "slow", or None (for MR).
         direction       -- "long", "short", or "both".

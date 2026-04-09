@@ -82,8 +82,8 @@ def run_batch(
 
     freqs_to_run: dict[str, Path] = {}
 
-    daily_dir = _PROJECT_ROOT / "strategies" / "strong_trend" / "long" / "iron" / "daily"
-    h1_dir = _PROJECT_ROOT / "strategies" / "strong_trend" / "long" / "iron" / "1h"
+    daily_dir = _PROJECT_ROOT / "strategies" / "long" / "long" / "iron" / "daily"
+    h1_dir = _PROJECT_ROOT / "strategies" / "long" / "long" / "iron" / "1h"
 
     if freq_filter is None or freq_filter == "daily":
         freqs_to_run["daily"] = daily_dir
@@ -123,7 +123,7 @@ def run_batch(
                     strategy_class=strategy_cls,
                     symbol="I",
                     direction="long",
-                    regime="strong_trend",
+                    regime="long",
                     horizon="medium",
                     version=v_name.replace("trend_medium_", ""),
                     freq=freq,

@@ -62,7 +62,7 @@ def get_regime_periods(
 
     Args:
         instrument: Futures instrument code.
-        regime: Regime type to filter (e.g. 'strong_trend').
+        regime: Regime type to filter (e.g. 'long', 'short').
         direction: Optional direction filter ('up', 'down', 'neutral').
         split: Optional split filter ('train', 'oos', 'holdout').
 

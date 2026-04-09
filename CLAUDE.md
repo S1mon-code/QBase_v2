@@ -2,7 +2,7 @@
 
 黑色系中国期货单品种多策略系统。基本面方向约束 + 技术面 regime 适配 + 多周期策略库。
 
-**复用：** indicators/（324 + Carry）+ AlphaForge V7.2。其余全部重写。
+**复用：** indicators/（324 + Carry）+ AlphaForge V7.6.1。其余全部重写。
 
 ---
 
@@ -19,9 +19,8 @@
     └────┬────┘
     ┌────▼────┐
     │ Layer 2 │  Strategy Pool — 按 Regime 激活对应策略集
-    │         │  Trending: TSMOM Baselines + Momentum + Carry + Blended + Technical
-    │         │  Mean Reversion: BB / RSI / Keltner / CCI / Carry MR
-    │         │  Crisis: 减仓 + 收紧止损
+    │         │  Long: TSMOM Baselines + Momentum + Carry + Blended + Technical
+    │         │  Short: TSMOM Baselines + Momentum + Carry + Blended + Technical
     └────┬────┘
     ┌────▼────┐
     │ Layer 3 │  Signal Blender — 多策略信号加权合并 → 单一净信号
@@ -39,7 +38,7 @@
     │ Layer 7 │  Portfolio Stops — 预警-10% / 减仓-15% / 熔断-20% / 单日-5%
     └────┬────┘
     ┌────▼────┐
-    │ Layer 8 │  Execution — AlphaForge V7.2 Industrial 模式
+    │ Layer 8 │  Execution — AlphaForge V7.6.1 Industrial 模式
     └─────────┘
 ```
 
@@ -75,7 +74,7 @@
 |------|------|
 | 品种 | 黑色系：I → AG → RB → HC → J → JM（大写 ticker） |
 | 周期 | 1h / 2h / 4h / daily 同步开发 |
-| Regime | Strong Trend / Mild Trend / Mean Reversion / Crisis |
+| Regime | Long / Short |
 | 信号维度 | Momentum / Carry / Volume-OI / Technical |
 | Trend Horizon | Fast(20-60) / Medium(60-125) / Slow(125-250) |
 | 方向约束 | 基本面 view: LONG_ONLY / SHORT_ONLY / NEUTRAL |
@@ -84,7 +83,7 @@
 | 验证 | 6 层: Regime CV → OOS → Walk-Forward → Deflated Sharpe → Monte Carlo → Industrial |
 | 归因 | 5 层: Signal → Horizon → Regime → Baseline Decomposition → Operational |
 | Portfolio | Signal Blender(同Regime内) + Regime Allocation(跨Regime) |
-| 标注方法 | Bry-Boschan 初筛 + 人工校正, ±2月buffer, 阈值 5%/20% |
+| 标注方法 | Bry-Boschan 初筛 + 人工校正, ±2月buffer, Long/Short 两类 |
 | 切换频率 | 周/月级 |
 | 数据分割 | 标注时即分好 train/oos/holdout per regime |
 
@@ -106,17 +105,12 @@ QBase_v2/
 ├── strategies/
 │   ├── templates/                  # 策略模板 (trending / mean_reversion)
 │   ├── baselines/                  # TSMOM Baselines (fast/medium/slow)
-│   ├── mild_trend/
-│   │   ├── long/I/{daily,1h,2h,4h}/   # v1-v50（含原 strong_trend 迁移）
-│   │   └── short/I/{daily,1h,2h,4h}/
-│   ├── strong_trend/
-│   │   ├── long/AG/{daily,1h,2h,4h}/
-│   │   └── short/AG/{daily,1h,2h,4h}/
-│   ├── mean_reversion/
-│   │   └── I/{daily,1h,2h,4h}/
-│   └── crisis/
-│       ├── long/I/{daily,1h,2h,4h}/   # 空骨架
-│       └── short/I/{daily,1h,2h,4h}/  # 空骨架
+│   ├── long/                       # Long regime strategies
+│   │   ├── I/{daily,1h,2h,4h}/    # Iron ore long
+│   │   └── AG/{daily,1h,2h,4h}/   # Silver long
+│   └── short/                      # Short regime strategies
+│       ├── I/{daily,1h,2h,4h}/    # Iron ore short
+│       └── AG/{daily,1h,2h,4h}/   # Silver short
 ├── risk/                           # 风控模块
 ├── optimizer/                      # 优化器
 ├── validation/                     # 验证体系
@@ -128,9 +122,8 @@ QBase_v2/
 ├── monitoring/                     # 监控 + 实盘
 ├── reports/                        # HTML 报告
 ├── research/
-│   ├── mild_trend/{long,short}/I/{timeframe}/v{N}_{return}%/
-│   ├── strong_trend/{long,short}/AG/{timeframe}/v{N}_{return}%/
-│   ├── mean_reversion/I/{timeframe}/
+│   ├── long/{direction}/{instrument}/{timeframe}/v{N}_{return}%/
+│   ├── short/{direction}/{instrument}/{timeframe}/v{N}_{return}%/
 │   ├── baselines/I/                # TSMOM baselines
 │   └── AG/                         # AG 相关研究
 ├── research_log/
@@ -139,11 +132,11 @@ QBase_v2/
 ├── tests/                          # 单元测试 (576+)
 ├── docs/
 │   ├── phases/                     # 各 Phase 详细设计文档
-│   └── ALPHAFORGE_API.md           # AlphaForge V7.2 完整 API 参考
+│   └── ALPHAFORGE_API.md           # AlphaForge V7.6.1 完整 API 参考
 └── pyproject.toml
 ```
 
-**路径约定：** 策略路径格式 `strategies/{regime}/{direction}/{instrument}/{timeframe}/v{N}.py`。品种用大写 ticker（I, AG, RB, HC, J, JM）。不存在 5min/10min/30min 目录。
+**路径约定：** 策略路径格式 `strategies/{regime}/{instrument}/{timeframe}/v{N}.py`，其中 regime = long/short。品种用大写 ticker（I, AG, RB, HC, J, JM）。不存在 5min/10min/30min 目录。
 
 ---
 
@@ -169,19 +162,19 @@ QBase_v2/
 
 | Group | 品种 | 方向 | Regime | Timeframes | 策略数 |
 |-------|------|------|--------|-----------|--------|
-| mild_trend/long/I | I | long | mild_trend | daily/1h/2h/4h | 150 |
-| mild_trend/short/I | I | short | mild_trend | daily/1h/2h/4h | 40 |
-| strong_trend/long/AG | AG | long | strong_trend | daily/1h/2h/4h | 40 |
-| strong_trend/short/AG | AG | short | strong_trend | daily/1h/2h/4h | 40 |
+| long/I | I | long | long | daily/1h/2h/4h | 190 |
+| short/I | I | short | short | daily/1h/2h/4h | 40 |
+| long/AG | AG | long | long | daily/1h/2h/4h | 40 |
+| short/AG | AG | short | short | daily/1h/2h/4h | 40 |
 
-**说明：** I（铁矿石）策略全部归属 mild_trend。v1-v10 为原始开发，v11-v40/v50 从 strong_trend 迁移。strong_trend 下不再有 I 策略。
+**说明：** Regime 简化为 Long/Short 两类（v2.5 upgrade）。
 
 ### Research 文件夹命名
 
 研究结果目录格式：`research/{regime}/{direction}/{instrument}/{timeframe}/v{N}_{+/-}{return}%/`
 
 - return 从 `oos.html` 的「总收益」字段提取，保留两位小数，正数带 `+`
-- 示例：`research/strong_trend/long/AG/1h/v10_+97.98%/`
+- 示例：`research/long/long/AG/1h/v10_+97.98%/`
 - OOS 包含该品种/方向下**所有** `split=oos` 的 regime periods（不按 regime 筛选）
 - `run_single_strategy_pipeline()` 自动从 oos.html 提取总收益并命名
 
@@ -225,7 +218,7 @@ Holdout 数据集只在最终 Portfolio 级别验证时使用一次。策略开�
 
 ### 策略命名
 
-`{regime}_{direction}_{instrument}_{timeframe}_v{N}` — 如 `mild_trend_long_I_daily_v1`
+`{regime}_{instrument}_{timeframe}_v{N}` — 如 `long_I_daily_v1`
 
 品种 ticker 大写：I, AG, RB, HC, J, JM
 
@@ -235,13 +228,13 @@ Holdout 数据集只在最终 Portfolio 级别验证时使用一次。策略开�
 [模块] 类型: 简短描述
 示例:
 [regime] feat: auto labeler with Bry-Boschan
-[strategy] feat: mild_trend_long_I_daily_v15 SuperTrend+VolMom
+[strategy] feat: long_I_daily_v15 SuperTrend+VolMom
 [optimizer] fix: boundary protection for edge params
 ```
 
 ---
 
-## AlphaForge V7.2 集成
+## AlphaForge V7.6.1 集成
 
 AlphaForge 是 QBase_v2 的回测执行引擎（Layer 8）。完整 API 参考见 [docs/ALPHAFORGE_API.md](docs/ALPHAFORGE_API.md)。
 
@@ -258,7 +251,7 @@ from alphaforge.engine.event_driven import EventDrivenBacktester
 from alphaforge.engine.config import BacktestConfig
 ```
 
-**dynamic_margin 修复**：V7.2 已修复 dynamic_margin 平仓保证金释放不匹配问题，通过 `PositionEntry.margin_per_lot` 记录开仓时实际保证金率。
+**dynamic_margin 修复**：V7.2+ 已修复 dynamic_margin 平仓保证金释放不匹配问题，通过 `PositionEntry.margin_per_lot` 记录开仓时实际保证金率。
 
 ### BacktestConfig 推荐配置
 

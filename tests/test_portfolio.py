@@ -667,17 +667,11 @@ class TestRetirement:
 class TestRegimeAllocator:
     """Tests for get_position_multiplier."""
 
-    def test_crisis_multiplier(self):
-        assert get_position_multiplier("crisis") == 0.5
+    def test_long_multiplier(self):
+        assert get_position_multiplier("long") == 1.0
 
-    def test_strong_trend_multiplier(self):
-        assert get_position_multiplier("strong_trend") == 1.0
-
-    def test_mild_trend_multiplier(self):
-        assert get_position_multiplier("mild_trend") == 1.0
-
-    def test_mean_reversion_multiplier(self):
-        assert get_position_multiplier("mean_reversion") == 1.0
+    def test_short_multiplier(self):
+        assert get_position_multiplier("short") == 1.0
 
     def test_unknown_regime(self):
         """Unknown regimes default to 1.0."""

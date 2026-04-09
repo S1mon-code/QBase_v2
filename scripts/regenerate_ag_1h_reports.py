@@ -1,6 +1,6 @@
-"""Regenerate train.html + oos.html for ALL strong_trend/long/AG/1h strategies.
+"""Regenerate train.html + oos.html for ALL long/AG/1h strategies.
 
-Uses AlphaForge V7.2 report system. Updates folder names with OOS total return.
+Uses AlphaForge V7.6.1 report system. Updates folder names with OOS total return.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from regime.schema import load_labels
 # ── Constants ─────────────────────────────────────────────────────────────────
 SYMBOL = "AG"
 DIRECTION = "long"
-REGIME = "strong_trend"
+REGIME = "long"
 FREQ = "1h"
 SIGNAL_DIRECTION = "long"
 
@@ -42,7 +42,7 @@ def load_periods():
     Key rules (matching original batch_regenerate_ag_1h.py):
     - active_periods use CORE dates (lbl.start/lbl.end) — strategy trades only here
     - bar loading uses BUFFER dates (lbl.buffer_start/lbl.buffer_end) — wider for warmup
-    - Train: filter by regime type (strong_trend only)
+    - Train: filter by regime type (long only)
     - OOS: ALL oos periods for this direction (not filtered by regime)
     """
     config = load_labels(LABEL_PATH)
@@ -87,7 +87,7 @@ def discover_strategies():
             continue
 
         # Extract version number
-        name = f.stem  # e.g., "strong_trend_long_AG_1h_v1"
+        name = f.stem  # e.g., "long_AG_1h_v1"
         version = name.split("_v")[-1] if "_v" in name else name.replace("v", "")
 
         # Dynamic import
@@ -258,7 +258,7 @@ def run_strategy(strategy_info, train_active, oos_active, train_range, oos_range
 def main():
     print(f"{'='*60}")
     print(f"  Regenerate Reports: {REGIME}/{DIRECTION}/{SYMBOL}/{FREQ}")
-    print(f"  AlphaForge V7.2 | Industrial Mode")
+    print(f"  AlphaForge V7.6.1 | Industrial Mode")
     print(f"{'='*60}")
 
     # Load periods

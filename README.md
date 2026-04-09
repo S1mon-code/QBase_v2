@@ -41,7 +41,7 @@
 
 ## 依赖
 
-- **AlphaForge V7.2** — 回测引擎（95 品种，1min-daily，Industrial 模式）
+- **AlphaForge V7.6.1** — 回测引擎（95 品种，1min-daily，Industrial 模式）
 - **Python 3.10+**
 - numpy, numba, optuna, scikit-learn, plotly
 
@@ -75,7 +75,7 @@
     │ Layer 7 │  Portfolio Stops — 预警-10% / 减仓-15% / 熔断-20% / 单日-5%
     └────┬────┘
     ┌────▼────┐
-    │ Layer 8 │  Execution — AlphaForge V7.2 Industrial 模式
+    │ Layer 8 │  Execution — AlphaForge V7.6.1 Industrial 模式
     └─────────┘
 ```
 
@@ -111,7 +111,7 @@ qbase portfolio build --symbol I --regime mild_trend
 ## 文档
 
 - [CLAUDE.md](CLAUDE.md) — Agent 开发指南
-- [docs/ALPHAFORGE_API.md](docs/ALPHAFORGE_API.md) — AlphaForge V7.2 API 参考
+- [docs/ALPHAFORGE_API.md](docs/ALPHAFORGE_API.md) — AlphaForge V7.6.1 API 参考
 - [docs/DEVELOPMENT_WORKFLOW.md](docs/DEVELOPMENT_WORKFLOW.md) — 单策略开发标准流程 v3.0
 - [docs/STRATEGY_GUIDE.md](docs/STRATEGY_GUIDE.md) — 策略开发指引
 - [docs/PORTFOLIO.md](docs/PORTFOLIO.md) — Portfolio 构建标准

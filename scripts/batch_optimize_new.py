@@ -1,9 +1,9 @@
 """Batch optimize + validate + generate reports for newly created strategies.
 
 Processes all 3 groups:
-1. mild_trend/long/I (v41-v50 daily, v51-v60 1h, v31-v40 2h, v31-v40 4h)
-2. mild_trend/short/I (v11-v20 × 4 freqs)
-3. strong_trend/short/AG (v11-v20 × 4 freqs)
+1. long/long/I (v41-v50 daily, v51-v60 1h, v31-v40 2h, v31-v40 4h)
+2. short/short/I (v11-v20 × 4 freqs)
+3. short/short/AG (v11-v20 × 4 freqs)
 
 Usage:
     PYTHONPATH=.:../AlphaForge python scripts/batch_optimize_new.py
@@ -32,7 +32,7 @@ TIMEFRAMES = ["daily", "1h", "2h", "4h"]
 # Group definitions: (regime, direction, instrument, label_file, signal_direction, version_ranges)
 GROUPS = {
     "I_long": {
-        "regime": "mild_trend",
+        "regime": "long",
         "direction": "long",
         "instrument": "I",
         "label_file": "I.yaml",
@@ -40,7 +40,7 @@ GROUPS = {
         "versions": {"daily": (41, 50), "1h": (51, 60), "2h": (31, 40), "4h": (31, 40)},
     },
     "I_short": {
-        "regime": "mild_trend",
+        "regime": "short",
         "direction": "short",
         "instrument": "I",
         "label_file": "I_short.yaml",
@@ -48,7 +48,7 @@ GROUPS = {
         "versions": {"daily": (11, 20), "1h": (11, 20), "2h": (11, 20), "4h": (11, 20)},
     },
     "AG_short": {
-        "regime": "strong_trend",
+        "regime": "short",
         "direction": "short",
         "instrument": "AG",
         "label_file": "AG_short.yaml",

@@ -11,6 +11,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from validation.thresholds import get_thresholds
+from validation.utils import compute_sharpe as _compute_sharpe
+
 
 @dataclass(frozen=True)
 class PermutationResult:
@@ -20,17 +23,6 @@ class PermutationResult:
     real_sharpe: float
     p_value: float  # fraction of random sharpes >= real sharpe
     verdict: str  # "SIGNIFICANT" / "MARGINAL" / "NOT_SIGNIFICANT"
-
-
-def _compute_sharpe(returns: np.ndarray) -> float:
-    """Compute annualized Sharpe ratio from daily returns."""
-    if len(returns) == 0:
-        return 0.0
-    mean_ret = np.mean(returns)
-    std_ret = np.std(returns, ddof=1)
-    if std_ret == 0.0:
-        return 0.0
-    return float(mean_ret / std_ret * np.sqrt(252))
 
 
 def permutation_test(
@@ -76,9 +68,10 @@ def permutation_test(
 
     p_value = float(np.mean(random_sharpes >= strategy_sharpe))
 
-    if p_value < 0.05:
+    cfg = get_thresholds()["permutation"]
+    if p_value < cfg["significant_pvalue"]:
         verdict = "SIGNIFICANT"
-    elif p_value < 0.10:
+    elif p_value < cfg["marginal_pvalue"]:
         verdict = "MARGINAL"
     else:
         verdict = "NOT_SIGNIFICANT"

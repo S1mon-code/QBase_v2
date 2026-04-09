@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from validation.thresholds import get_thresholds
+
 
 @dataclass(frozen=True)
 class WalkForwardResult:
@@ -56,7 +58,8 @@ def walk_forward_verdict(
     win_rate = win_count / n_windows
     worst_sharpe = min(window_sharpes)
     best_sharpe = max(window_sharpes)
-    passed = win_rate >= 0.5 and mean_sharpe > 0.0
+    cfg = get_thresholds()["walk_forward"]
+    passed = win_rate >= cfg["pass_min_win_rate"] and mean_sharpe > 0.0
 
     return WalkForwardResult(
         mode=mode,

@@ -1,8 +1,8 @@
 """Auto-labeling using a Bry-Boschan variant for regime detection.
 
 Identifies local peaks and troughs in a price series, classifies
-the moves between them into regime types, and returns a list of
-RegimeLabel objects with buffer windows.
+the moves between them into long (direction=up) or short (direction=down)
+regimes, and returns a list of RegimeLabel objects with buffer windows.
 """
 
 from __future__ import annotations
@@ -184,18 +184,15 @@ def auto_label(
     config: dict[str, Any] | None = None,
     instrument: str | None = None,
 ) -> list[RegimeLabel]:
-    """Auto-label a price series into regime periods using a Bry-Boschan variant.
+    """Auto-label a price series into long/short regime periods using Bry-Boschan.
 
     Steps:
         1. Find local peaks / troughs within ``peak_trough_window`` months.
         2. Compute price change between adjacent extrema.
-        3. Classify:
-           - |change| > strong_trend_pct  ->  strong_trend
-           - mild_trend_pct .. strong_trend_pct  ->  mild_trend
-           - < mild_trend_pct & duration > 1 month  ->  mean_reversion
-        4. Overlay crisis detection: rolling ATR > crisis_atr_sigma * std(ATR).
-        5. Enforce minimum duration (min_duration_months).
-        6. Add buffer_months before and after each period.
+        3. Classify: direction=up -> regime="long", direction=down -> regime="short".
+           R-squared filter: segments with very low directional move are skipped.
+        4. Enforce minimum duration (min_duration_months).
+        5. Add buffer_months before and after each period.
 
     Args:
         prices: 1-D numpy array of close prices.
@@ -218,9 +215,7 @@ def auto_label(
     if config is None:
         config = get_regime_thresholds(instrument)
 
-    strong_pct: float = config.get("strong_trend_pct", 0.20)
-    mild_pct: float = config.get("mild_trend_pct", 0.05)
-    crisis_sigma: float = config.get("crisis_atr_sigma", 3.0)
+    # mild_trend_pct removed in v2.5 (regime simplified to long/short)
     min_dur: int = config.get("min_duration_months", 1)
     buffer_m: int = config.get("buffer_months", 2)
     pt_window: int = config.get("peak_trough_window", 3)
@@ -255,17 +250,7 @@ def auto_label(
     if len(extrema) < 2:
         return []
 
-    # Step 4 (precompute): Crisis detection via rolling ATR
-    atr = _compute_rolling_atr(prices, window=max(window_bars, 5))
-    valid_atr = atr[~np.isnan(atr)]
-    if len(valid_atr) > 0:
-        atr_mean = np.mean(valid_atr)
-        atr_std = np.std(valid_atr)
-        crisis_threshold = atr_mean + crisis_sigma * atr_std
-    else:
-        crisis_threshold = float("inf")
-
-    # Steps 2-3: Classify segments
+    # Steps 2-3: Classify segments as long or short
     raw_labels: list[RegimeLabel] = []
 
     for seg_idx in range(len(extrema) - 1):
@@ -286,37 +271,21 @@ def auto_label(
         # Duration check
         duration_months = _bars_to_months(idx_b - idx_a, n, total_days)
 
-        # Crisis check: is average ATR in this segment above threshold?
-        seg_atr = atr[idx_a : idx_b + 1]
-        seg_atr_valid = seg_atr[~np.isnan(seg_atr)]
-        is_crisis = (
-            len(seg_atr_valid) > 0 and np.mean(seg_atr_valid) > crisis_threshold
-        )
-
-        # Classify
-        if is_crisis:
-            regime = "crisis"
-        elif abs_change > strong_pct:
-            regime = "strong_trend"
-        elif abs_change >= mild_pct:
-            regime = "mild_trend"
-        elif duration_months >= min_dur:
-            regime = "mean_reversion"
-        else:
-            # Too short and too small — skip
+        # Skip segments that are too small (no clear direction)
+        if abs_change < mild_pct and duration_months < min_dur:
             continue
-
-        # Direction
-        if abs_change < mild_pct and regime != "crisis":
-            direction = "neutral"
-        elif change > 0:
-            direction = "up"
-        else:
-            direction = "down"
 
         # Duration filter
-        if regime != "crisis" and duration_months < min_dur:
+        if duration_months < min_dur:
             continue
+
+        # Simplified 2-type classification: long (up) or short (down)
+        if change >= 0:
+            regime = "long"
+            direction = "up"
+        else:
+            regime = "short"
+            direction = "down"
 
         # Buffer dates
         buf_start = _add_months(seg_start, -buffer_m)

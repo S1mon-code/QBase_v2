@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from validation.thresholds import get_thresholds
+
 
 @dataclass(frozen=True)
 class OOSResult:
@@ -46,11 +48,13 @@ def validate_oos(
     Returns:
         OOSResult with walk-forward ratio and diagnostic flags.
 
-    Flags:
-        - "suspected_overfit": wf_ratio < 0.5
-        - "behavior_anomaly": trade freq or hold time differs > 3x
-        - "oos_biased_high": oos_sharpe > is_sharpe * 1.5
+    Flags (thresholds from validation/config.yaml):
+        - "suspected_overfit": wf_ratio < suspected_overfit_ratio
+        - "behavior_anomaly": trade freq or hold time differs > threshold
+        - "oos_biased_high": oos_sharpe > is_sharpe * oos_biased_high_ratio
     """
+    cfg = get_thresholds()["oos"]
+
     if is_sharpe == 0.0:
         wf_ratio = math.inf if oos_sharpe != 0.0 else 0.0
     else:
@@ -64,24 +68,24 @@ def validate_oos(
     # Collect flags
     flags: list[str] = []
 
-    if wf_ratio < 0.5:
+    if wf_ratio < cfg["suspected_overfit_ratio"]:
         flags.append("suspected_overfit")
 
     # Behavioral consistency: trade frequency
     if is_trades > 0 and oos_trades > 0:
         trade_ratio = max(is_trades, oos_trades) / max(min(is_trades, oos_trades), 1)
-        if trade_ratio > 3.0:
+        if trade_ratio > cfg["behavior_anomaly_freq_ratio"]:
             flags.append("behavior_anomaly")
 
     # Behavioral consistency: holding period
     if is_avg_hold > 0.0 and oos_avg_hold > 0.0:
         hold_ratio = max(is_avg_hold, oos_avg_hold) / min(is_avg_hold, oos_avg_hold)
-        if hold_ratio > 3.0:
+        if hold_ratio > cfg["behavior_anomaly_hold_ratio"]:
             if "behavior_anomaly" not in flags:
                 flags.append("behavior_anomaly")
 
     # OOS biased high
-    if is_sharpe > 0.0 and oos_sharpe > is_sharpe * 1.5:
+    if is_sharpe > 0.0 and oos_sharpe > is_sharpe * cfg["oos_biased_high_ratio"]:
         flags.append("oos_biased_high")
 
     return OOSResult(
